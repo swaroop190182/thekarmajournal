@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  /* Add floral-inspired gradient background */
+  /* This will be layered on top of the theme's --background color */
+  background-image:
+    radial-gradient(circle at 10% 20%, hsla(var(--primary), 0.08) 0%, transparent 25%),
+    radial-gradient(circle at 90% 30%, hsla(var(--accent), 0.07) 0%, transparent 25%),
+    radial-gradient(circle at 30% 85%, hsla(var(--secondary), 0.1) 0%, transparent 30%),
+    radial-gradient(circle at 70% 70%, hsla(var(--primary), 0.06) 0%, transparent 20%),
+    radial-gradient(circle at 50% 50%, hsla(var(--accent), 0.05) 0%, transparent 20%);
+  background-size: 100vw 100vh; /* Cover the viewport */
+  background-attachment: fixed; /* Fixed background during scroll */
+}
+
+@layer base {
+  :root {
+    /* Light theme - Inspired by Fashion Landing Page */
+    --background: 0 0% 97%;            /* Very light grey, almost white */
+    --foreground: 100 10% 20%;         /* Dark desaturated green-grey for text */
+    --card: 0 0% 100%;                /* White for cards */
+    --card-foreground: 100 10% 20%;   /* Dark desaturated green-grey for text on cards */
+    --popover: 0 0% 100%;
+    --popover-foreground: 100 10% 20%;
+    --primary: 100 30% 40%;           /* Muted earthy green (e.g., for buttons) */
+    --primary-foreground: 0 0% 98%;   /* Light text on primary buttons */
+    --secondary: 100 20% 90%;         /* Very light, desaturated green */
+    --secondary-foreground: 100 10% 30%;/* Darker text on secondary elements */
+    --muted: 100 20% 94%;             /* Slightly darker than secondary, for muted text/backgrounds */
+    --muted-foreground: 100 10% 50%;  /* Muted text color */
+    --accent: 100 35% 50%;            /* Slightly brighter/more saturated green for highlights */
+    --accent-foreground: 0 0% 98%;    /* Light text on accent elements */
+    --destructive: 0 70% 55%;         /* Standard red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 100 15% 88%;            /* Light, slightly greenish border */
+    --input: 100 15% 95%;             /* Very light greenish input background */
+    --ring: 100 30% 45%;              /* Ring color related to primary */
+
+    --chart-1: 90 40% 50%;    /* Main green */
+    --chart-2: 90 30% 65%;    /* Lighter green */
+    --chart-3: 40 10% 50%;    /* Muted warm grey/beige */
+    --chart-4: 90 20% 75%;    /* Very light green */
+    --chart-5: 0 0% 60%;      /* Medium grey */
+    --chart-6: 100 25% 55%;   /* Another shade of muted green */
+    --chart-7: 30 15% 70%;    /* Light beige */
+    --chart-8: 0 0% 40%;      /* Darker grey */
+    --chart-9: 100 20% 60%;   /* Soft green */
+    --chart-10: 45 5% 80%;    /* Very light warm grey */
+
+    --radius: 0.5rem;
+
+    /* Sidebar colors adjusted to match the new theme */
+    --sidebar-background: 0 0% 99%; 
+    --sidebar-foreground: 100 10% 25%;
+    --sidebar-primary: 100 30% 42%; 
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 100 20% 92%;
+    --sidebar-accent-foreground: 100 10% 25%;
+    --sidebar-border: 100 15% 86%;
+    --sidebar-ring: 100 30% 45%;
+
+    /* Luma Grief Counsellor Bot Colors - Light Theme */
+    --luma-bg-primary: 182 29% 75%;      /* #A5C9CA - Soft Blue */
+    --luma-bg-secondary: 163 52% 94%;   /* #E7F6F2 - Softer Blue (Bot Bubble) */
+    --luma-bg-neutral-light: 36 33% 95%;/* #F8F5F1 - Warm Neutral */
+    --luma-bg-neutral-medium: 33 18% 89%;/* #E2DCD5 - Gentle Neutral */
+    --luma-accent-lavender: 257 34% 75%; /* #B4A6D5 - Muted Lavender */
+    --luma-accent-peach: 24 100% 86%;    /* #FFD3B6 - Soft Peach */
+    --luma-user-bubble-bg: 0 0% 94.5%;    /* #F1F1F1 - Light Grey (User Bubble) */
+    --luma-text-primary: 100 10% 25%;    /* Darker text for readability on light backgrounds */
+    --luma-text-on-bot-bubble: 180 15% 30%; /* Darker blue-grey for bot bubble text */
+  }
+
+  .dark {
+    /* Dark theme - Muted Greens */
+    --background: 100 10% 12%;         /* Very dark desaturated green */
+    --foreground: 100 10% 85%;         /* Light off-white/grey */
+    --card: 100 10% 15%;              /* Slightly lighter than background for cards */
+    --card-foreground: 100 10% 85%;
+    --popover: 100 10% 10%;
+    --popover-foreground: 100 10% 85%;
+    --primary: 100 30% 55%;           /* Muted green, brighter for dark mode */
+    --primary-foreground: 100 10% 10%;  /* Dark text on primary buttons */
+    --secondary: 100 15% 25%;         /* Darker muted green */
+    --secondary-foreground: 100 10% 75%;
+    --muted: 100 15% 20%;             /* Dark muted color */
+    --muted-foreground: 100 10% 60%;  /* Muted text color */
+    --accent: 100 35% 65%;            /* Brighter green accent for dark mode */
+    --accent-foreground: 100 10% 10%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 100 10% 30%;
+    --input: 100 10% 20%;
+    --ring: 100 30% 60%;
+    
+    --chart-1: 90 40% 60%;    /* Main green, brighter */
+    --chart-2: 90 30% 70%;    /* Lighter green */
+    --chart-3: 40 10% 65%;    /* Muted warm grey/beige, lighter */
+    --chart-4: 90 20% 80%;    /* Very light green */
+    --chart-5: 0 0% 70%;      /* Lighter Medium grey */
+    --chart-6: 100 25% 60%;   /* Another shade of muted green */
+    --chart-7: 30 15% 75%;    /* Light beige */
+    --chart-8: 0 0% 50%;      /* Medium grey */
+    --chart-9: 100 20% 65%;   /* Soft green */
+    --chart-10: 45 5% 85%;   /* Very light warm grey */
+
+    /* Sidebar colors adjusted for dark theme */
+    --sidebar-background: 100 10% 10%; 
+    --sidebar-foreground: 100 10% 80%; 
+    --sidebar-primary: 100 30% 58%; 
+    --sidebar-primary-foreground: 100 10% 8%; 
+    --sidebar-accent: 100 15% 22%; 
+    --sidebar-accent-foreground: 100 10% 88%; 
+    --sidebar-border: 100 10% 28%;
+    --sidebar-ring: 100 30% 60%;
+
+    /* Luma Grief Counsellor Bot Colors - Dark Theme */
+    --luma-bg-primary: 182 20% 30%;      /* Darker Soft Blue */
+    --luma-bg-secondary: 163 25% 25%;   /* Darker Softer Blue (Bot Bubble) */
+    --luma-bg-neutral-light: 36 10% 20%;/* Darker Warm Neutral */
+    --luma-bg-neutral-medium: 33 8% 25%; /* Darker Gentle Neutral */
+    --luma-accent-lavender: 257 20% 45%; /* Darker Muted Lavender */
+    --luma-accent-peach: 24 40% 50%;    /* Darker Soft Peach */
+    --luma-user-bubble-bg: 0 0% 20%;     /* Dark Grey (User Bubble) */
+    --luma-text-primary: 100 10% 80%;    /* Lighter text for readability on dark backgrounds */
+    --luma-text-on-bot-bubble: 163 30% 85%; /* Lighter blue-grey for bot bubble text */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+@media (min-width: 640px) { 
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+@media (min-width: 1024px) { 
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Luma-specific gentle pulsing animation for typing indicator */
+@keyframes luma-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.luma-pulse-animation {
+  animation: luma-pulse 2s infinite ease-in-out;
+}
+
+/* Subtle pulse animation for streak update */
+@keyframes subtle-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.streak-updated-pulse {
+  animation: subtle-pulse 1.5s ease-in-out;
+}
