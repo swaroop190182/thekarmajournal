@@ -34,8 +34,7 @@ export default function LandingPage() {
               alt="Karma Journal Hero Image"
               className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last shadow-xl"
               height={360}
-              src="/kj.jpg"
-              data-ai-hint="abstract karma spiritual"
+              src="/kjmain.png"
               width={640}
             />
             </div>
@@ -63,23 +62,21 @@ export default function LandingPage() {
               <h3 className="text-lg font-bold text-foreground">Goal Setting & Streaks</h3>
               <p className="text-sm text-muted-foreground">Set personal goals, track your streaks, and stay motivated on your journey.</p>
             </div>
-            <div className="p-4 rounded-lg hover:bg-accent/10 transition-colors shadow-sm border border-border/50">
-              <div className="flex items-start justify-between">
-                <div className="flex-grow mr-3">
-                  <div className="flex items-center mb-1">
-                    <Brain className="h-8 w-8 text-accent mr-2 flex-shrink-0" />
-                    <h3 className="text-lg font-bold text-foreground">AI-Powered Insights</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Receive personalized feedback and suggestions from our AI coach to help you grow.</p>
+            <div className="p-4 rounded-lg hover:bg-accent/10 transition-colors shadow-sm border border-border/50 flex items-start">
+              <div className="flex-grow mr-3">
+                <div className="flex items-center mb-1">
+                  <Brain className="h-8 w-8 text-accent mr-2 flex-shrink-0" />
+                  <h3 className="text-lg font-bold text-foreground">AI-Powered Insights</h3>
                 </div>
-                <Image 
-                  src="/luma.png" 
-                  alt="Luma AI Assistant" 
-                  width={40} 
-                  height={40} 
-                  className="rounded-full flex-shrink-0" 
-                />
+                <p className="text-sm text-muted-foreground">Receive personalized feedback and suggestions from our AI coach to help you grow.</p>
               </div>
+              <Image 
+                src="/luma.png" 
+                alt="Luma AI Assistant" 
+                width={40} 
+                height={40} 
+                className="rounded-full flex-shrink-0" 
+              />
             </div>
             <div className="grid gap-2 p-4 rounded-lg hover:bg-accent/10 transition-colors shadow-sm border border-border/50">
               <LineChart className="h-8 w-8 text-accent" />
