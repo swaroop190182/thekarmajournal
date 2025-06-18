@@ -46,7 +46,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfDay, isToday, subDays, startOfWeek, endOfWeek, isWithinInterval, getDay, eachDayOfInterval, formatISO, addDays } from 'date-fns';
+import { format, parseISO, startOfDay, isToday, subDays, startOfWeek, endOfWeek, isWithinInterval, getDay, eachDayOfInterval, formatISO, addDays, isValid } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { 
     Award, TrendingUp, Loader2, Smile, Meh, Frown, Laugh, Angry, BookOpen, CheckCircle2, ListChecks, Palette, CalendarDays, Gift, 
@@ -307,18 +307,8 @@ const ReflectionsPage = () => {
     setIsNeuroWellnessLoading(true);
     const dateStr = format(targetDate, 'yyyy-MM-dd');
     const neuroStorageKey = `${NEURO_WELLNESS_STORAGE_KEY_PREFIX}${dateStr}`;
-    const storedNeuroData = localStorage.getItem(neuroStorageKey);
-
-    if (storedNeuroData) {
-      try {
-        setDailyNeuroWellness(JSON.parse(storedNeuroData));
-        setIsNeuroWellnessLoading(false);
-        return;
-      } catch (e) {
-        console.warn("Could not parse stored neuro wellness data for", dateStr);
-      }
-    }
     
+    // Always calculate fresh scores from karma activities
     const activitiesString = localStorage.getItem(`karma-${dateStr}`);
     let dailyActivities: SelectedKarmaActivity[] = [];
     if (activitiesString) {
@@ -342,13 +332,13 @@ const ReflectionsPage = () => {
       if (activityDef && activityDef.chemicalRelease && activityDef.chemicalRelease !== 'none') {
         const chemical = activityDef.chemicalRelease;
         if (newScores[chemical].score < 100) {
-          newScores[chemical].score = Math.min(100, newScores[chemical].score + 20); // Each relevant activity adds 20, caps at 100
+          newScores[chemical].score = Math.min(100, newScores[chemical].score + 20); 
         }
         newScores[chemical].activityCount += 1;
       }
     });
     
-    localStorage.setItem(neuroStorageKey, JSON.stringify(newScores));
+    localStorage.setItem(neuroStorageKey, JSON.stringify(newScores)); // Save the newly calculated scores
     setDailyNeuroWellness(newScores);
     setIsNeuroWellnessLoading(false);
   }, []);
@@ -366,14 +356,9 @@ const ReflectionsPage = () => {
                 data.push(JSON.parse(storedData));
             } catch (e) {
                 console.warn("Could not parse stored neuro data for weekly trend for date:", dateStr);
-                // Push a default structure if parsing fails, so chart doesn't break
                  data.push({ date: dateStr, dopamine: {score:0, activityCount:0}, serotonin: {score:0, activityCount:0}, oxytocin: {score:0, activityCount:0}, endorphins: {score:0, activityCount:0} });
             }
         } else {
-            // If no data, calculate it and then add (or add default if calculation is complex here)
-            // For simplicity, we'll assume calculateDailyNeuroWellnessScores might be called elsewhere,
-            // or we can add a default placeholder.
-            // To ensure chart has 7 points, push a default.
             data.push({ date: dateStr, dopamine: {score:0, activityCount:0}, serotonin: {score:0, activityCount:0}, oxytocin: {score:0, activityCount:0}, endorphins: {score:0, activityCount:0} });
         }
     }
@@ -433,7 +418,7 @@ const ReflectionsPage = () => {
                 if (neuroDataStr) {
                     try {
                         const neuroData: DailyNeuroWellnessData = JSON.parse(neuroDataStr);
-                        if (neuroData.serotonin.activityCount > 0) { // Check if any serotonin boosting activity was logged
+                        if (neuroData.serotonin.activityCount > 0) { 
                             serotoninDays++;
                         }
                     } catch(e) { console.warn("Error parsing neuro data for serotonin badge check", e); }
@@ -463,7 +448,7 @@ const ReflectionsPage = () => {
 
   const calculateMoodsTrackedThisWeek = useCallback(() => {
     if (typeof window === 'undefined') return 0;
-    const today = selectedCalendarDate || new Date(); // Use selected date for context
+    const today = selectedCalendarDate || new Date(); 
     const weekStart = startOfWeek(today, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
     let count = 0;
@@ -504,6 +489,7 @@ const ReflectionsPage = () => {
     const loadedReflections: {[date: string]: {text: string, mood?: string}} = {};
     let loadedJournalingStreak: StreakData | null = null;
     let loadedAchievedBadgesFromStorage: Badge[] = [];
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
     
     if (typeof window !== 'undefined') {
       const storedFavorites = localStorage.getItem(FAVORITES_STORAGE_KEY);
@@ -536,15 +522,16 @@ const ReflectionsPage = () => {
         const key = localStorage.key(i);
         if (key && key.startsWith('karma-')) {
           const dateStr = key.replace('karma-', '');
-          if (!key.startsWith('karma-journal-goals') && 
-              !key.startsWith(REFLECTION_STORAGE_KEY_PREFIX) &&
+          if (datePattern.test(dateStr) && 
+              !key.startsWith(REFLECTION_STORAGE_KEY_PREFIX) && 
+              !key.startsWith(NEURO_WELLNESS_STORAGE_KEY_PREFIX) &&
+              !key.startsWith('karma-journal-goals') && 
               !key.startsWith('karma-journal-text-') && 
               !key.startsWith('karma-journal-favorite-affirmations') && 
               !key.startsWith('karma-journaling-streak') && 
               !key.startsWith('karma-journal-achieved-badges')) {
               
-              const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-              if (datePattern.test(dateStr)) {
+              if (datePattern.test(dateStr) && isValid(parseISO(dateStr))) {
                 try {
                   const activitiesString = localStorage.getItem(key);
                   const activitiesData = activitiesString ? JSON.parse(activitiesString) : [];
@@ -570,15 +557,17 @@ const ReflectionsPage = () => {
         }
         if (key && key.startsWith(REFLECTION_STORAGE_KEY_PREFIX)) {
           const dateStr = key.replace(REFLECTION_STORAGE_KEY_PREFIX, '');
-          try {
-            const storedReflection = localStorage.getItem(key);
-            if (storedReflection) {
-              loadedReflections[dateStr] = JSON.parse(storedReflection);
+          if (datePattern.test(dateStr) && isValid(parseISO(dateStr))) {
+            try {
+                const storedReflection = localStorage.getItem(key);
+                if (storedReflection) {
+                loadedReflections[dateStr] = JSON.parse(storedReflection);
+                }
+            } catch (e) {
+                const text = localStorage.getItem(key);
+                if (text) loadedReflections[dateStr] = { text };
+                console.warn('Could not parse reflection as JSON for', dateStr, 'treating as text-only if possible.');
             }
-          } catch (e) {
-              const text = localStorage.getItem(key);
-              if (text) loadedReflections[dateStr] = { text };
-              console.warn('Could not parse reflection as JSON for', dateStr, 'treating as text-only if possible.');
           }
         }
       }
@@ -610,11 +599,17 @@ const ReflectionsPage = () => {
       return;
     }
     const data: {[date: string]: any} = {}; 
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith('karma-')) {
         const date = key.replace('karma-', '');
-         if (!key.startsWith('karma-journal-goals') && !key.startsWith(REFLECTION_STORAGE_KEY_PREFIX.replace('karma-','')) && !key.startsWith('karma-journal-text-') && !key.startsWith('karma-journal-favorite-affirmations')) {
+         if (datePattern.test(date) && 
+             !key.startsWith(REFLECTION_STORAGE_KEY_PREFIX) &&
+             !key.startsWith(NEURO_WELLNESS_STORAGE_KEY_PREFIX) &&
+             !key.startsWith('karma-journal-goals') && 
+             !key.startsWith('karma-journal-text-') && 
+             !key.startsWith('karma-journal-favorite-affirmations')) {
             try {
             const activities: SelectedKarmaActivity[] = JSON.parse(localStorage.getItem(key) || '[]');
             activities.forEach(activity => {
@@ -697,7 +692,7 @@ const ReflectionsPage = () => {
 
   const handleDateSelectForSummary = useCallback((date: Date | undefined) => {
     if (!date || typeof window === 'undefined') return;
-    setSelectedCalendarDate(date); // keep this to manage selected date on calendar
+    setSelectedCalendarDate(date); 
     const formattedDate = format(date, 'yyyy-MM-dd');
 
     let dailyActivities: SelectedKarmaActivity[] = [];
@@ -746,7 +741,7 @@ const ReflectionsPage = () => {
   const handleOpenReflectionDialogFromSummary = () => {
     if (summaryData) {
       setReflectionText(summaryData.reflection?.text || '');
-      // Mood is not edited here anymore
+      
       setIsReflectionDialogOpen(true);
     }
   };
@@ -757,7 +752,7 @@ const ReflectionsPage = () => {
       const existingReflectionData = reflectionLog[dateStr] || {};
       const reflectionData = { 
         text: reflectionText, 
-        mood: existingReflectionData.mood // Preserve mood if it was set from Home page
+        mood: existingReflectionData.mood 
       };
       const updatedReflections = { ...reflectionLog, [dateStr]: reflectionData };
       
@@ -772,7 +767,7 @@ const ReflectionsPage = () => {
       toast({ title: 'Reflection Saved', description: `Your reflection for ${dateStr} has been saved.` });
       setIsReflectionDialogOpen(false);
       setReflectionText('');
-      calculateDailyNeuroWellnessScores(selectedCalendarDate); // Recalculate neuro wellness scores as reflection might influence it via activity logging
+      calculateDailyNeuroWellnessScores(selectedCalendarDate); 
     }
   };
   
@@ -852,7 +847,7 @@ const ReflectionsPage = () => {
       
       setCellData({ activities: dailyActivities, score: dailyScoreValue, selfie: selfieActivityValue, predominantChemical: predominantChemicalValue, loaded: true });
   
-    }, [formattedDate, isOutside, reflectionLog]); // Added reflectionLog to re-evaluate if mood is stored there.
+    }, [formattedDate, isOutside, reflectionLog]); 
     
     let baseBgClass = dayOfWeekBackgrounds[getDay(date)];
 
@@ -1162,7 +1157,7 @@ const ReflectionsPage = () => {
 
     const weeklyNeuroChartData = useMemo(() => {
       return weeklyNeuroData.map(dayData => ({
-          date: format(parseISO(dayData.date), 'EEE'), // Short day name like "Mon"
+          date: format(parseISO(dayData.date), 'EEE'), 
           Dopamine: dayData.dopamine.score,
           Serotonin: dayData.serotonin.score,
           Oxytocin: dayData.oxytocin.score,
@@ -1389,7 +1384,7 @@ const ReflectionsPage = () => {
                               <ScrollArea className="h-48">
                                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pr-2">
                                       {achievedBadges.map(badge => {
-                                          const BadgeIcon = badge.icon; // Already resolved to component
+                                          const BadgeIcon = badge.icon; 
                                           return (
                                               <Tooltip key={badge.id}>
                                                   <TooltipTrigger asChild>
@@ -1673,7 +1668,7 @@ const ReflectionsPage = () => {
           {summaryData ? (
             <ScrollArea className="max-h-[60vh] p-1">
               <div className="space-y-4 py-4 pr-4">
-                 {/* Mood display removed from here */}
+                 
                 <Separator />
                 <div>
                   <div className="flex items-center mb-2">
@@ -1752,7 +1747,7 @@ const ReflectionsPage = () => {
                 onChange={(e) => setReflectionText(e.target.value)}
                 rows={6}
             />
-            {/* Mood selection UI removed from here */}
+            
             </div>
             <DialogFooter>
             <Button variant="outline" onClick={() => setIsReflectionDialogOpen(false)}>Cancel</Button>
@@ -1944,3 +1939,4 @@ const ReflectionsPage = () => {
 };
 
 export default ReflectionsPage;
+
