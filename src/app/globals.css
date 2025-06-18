@@ -136,6 +136,24 @@ body {
   }
 }
 
+/* Landing Page Dark Red Theme Overrides */
+.landing-page-dark-red-theme {
+  --primary: 0 60% 35%;
+  --foreground: 0 55% 30%;
+  --muted-foreground: 0 45% 45%;
+  --accent: 0 65% 45%;
+  /* Keep --primary-foreground and --accent-foreground from global for contrast */
+}
+
+.dark .landing-page-dark-red-theme {
+  --primary: 0 60% 55%;
+  --foreground: 0 55% 75%;
+  --muted-foreground: 0 45% 65%;
+  --accent: 0 65% 60%;
+  /* Keep --primary-foreground and --accent-foreground from global for contrast */
+}
+
+
 .container {
   padding-left: 1rem;
   padding-right: 1rem;

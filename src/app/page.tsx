@@ -6,7 +6,7 @@ import { TrendingUp, Target, Edit, LineChart, Heart, Users, Moon, Sun, TreePine,
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen text-foreground">
+    <div className="flex flex-col min-h-screen landing-page-dark-red-theme">
       {/* Hero Section */}
       <section className="w-full py-12 md:py-20 lg:py-28 xl:py-32 bg-secondary/30">
         <div className="container px-4 md:px-6 mx-auto">
@@ -112,22 +112,22 @@ export default function LandingPage() {
           <div className="mx-auto w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="flex flex-col items-center space-y-3 p-6 rounded-lg bg-background shadow-md border border-border/50">
               <Edit className="h-10 w-10 text-accent" />
-              <h3 className="text-lg font-semibold">1. Record Daily</h3>
+              <h3 className="text-lg font-semibold text-foreground">1. Record Daily</h3>
               <p className="text-sm text-muted-foreground">Log your actions, thoughts, and journal entries easily.</p>
             </div>
             <div className="flex flex-col items-center space-y-3 p-6 rounded-lg bg-background shadow-md border border-border/50">
               <Repeat className="h-10 w-10 text-accent" />
-              <h3 className="text-lg font-semibold">2. Track Habits</h3>
+              <h3 className="text-lg font-semibold text-foreground">2. Track Habits</h3>
               <p className="text-sm text-muted-foreground">Monitor habits you want to cultivate or reduce.</p>
             </div>
             <div className="flex flex-col items-center space-y-3 p-6 rounded-lg bg-background shadow-md border border-border/50">
               <LineChart className="h-10 w-10 text-accent" />
-              <h3 className="text-lg font-semibold">3. View Progress</h3>
+              <h3 className="text-lg font-semibold text-foreground">3. View Progress</h3>
               <p className="text-sm text-muted-foreground">See your karma score and trends on your dashboard.</p>
             </div>
             <div className="flex flex-col items-center space-y-3 p-6 rounded-lg bg-background shadow-md border border-border/50">
               <Target className="h-10 w-10 text-accent" />
-              <h3 className="text-lg font-semibold">4. Set Goals</h3>
+              <h3 className="text-lg font-semibold text-foreground">4. Set Goals</h3>
               <p className="text-sm text-muted-foreground">Define personal goals and track your achievements.</p>
             </div>
           </div>
