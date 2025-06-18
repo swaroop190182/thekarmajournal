@@ -143,6 +143,13 @@ body {
   --muted-foreground: 0 45% 45%;
   --accent: 0 65% 45%;
   /* Keep --primary-foreground and --accent-foreground from global for contrast */
+
+  /* Add specific background for landing page */
+  background-image: url('/kjbackground.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .dark .landing-page-dark-red-theme {
