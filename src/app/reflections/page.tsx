@@ -536,19 +536,35 @@ const ReflectionsPage = () => {
         const key = localStorage.key(i);
         if (key && key.startsWith('karma-')) {
           const dateStr = key.replace('karma-', '');
-          if (!key.startsWith('karma-journal-goals') && !key.startsWith(REFLECTION_STORAGE_KEY_PREFIX.replace('karma-','')) && !key.startsWith('karma-journal-text-') && !key.startsWith('karma-journal-favorite-affirmations') && !key.startsWith('karma-journaling-streak') && !key.startsWith('karma-journal-achieved-badges')) {
-              try {
-              const activities: SelectedKarmaActivity[] = JSON.parse(localStorage.getItem(key) || '[]');
-              const score = activities.reduce((sum: number, activity: SelectedKarmaActivity) => {
-                  let pointsToAward = activity.points;
-                  if (activity.requiresPhoto && !activity.mediaDataUri) {
-                      pointsToAward = Math.round(activity.points * 0.7);
+          if (!key.startsWith('karma-journal-goals') && 
+              !key.startsWith(REFLECTION_STORAGE_KEY_PREFIX) &&
+              !key.startsWith('karma-journal-text-') && 
+              !key.startsWith('karma-journal-favorite-affirmations') && 
+              !key.startsWith('karma-journaling-streak') && 
+              !key.startsWith('karma-journal-achieved-badges')) {
+              
+              const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+              if (datePattern.test(dateStr)) {
+                try {
+                  const activitiesString = localStorage.getItem(key);
+                  const activitiesData = activitiesString ? JSON.parse(activitiesString) : [];
+                  
+                  if (Array.isArray(activitiesData)) {
+                    const activities: SelectedKarmaActivity[] = activitiesData;
+                    const score = activities.reduce((sum: number, activity: SelectedKarmaActivity) => {
+                        let pointsToAward = activity.points;
+                        if (activity.requiresPhoto && !activity.mediaDataUri) {
+                            pointsToAward = Math.round(activity.points * 0.7);
+                        }
+                        return sum + pointsToAward;
+                    }, 0);
+                    storedKarma.push({date: dateStr, score});
+                  } else {
+                     console.warn(`Data for key ${key} (date: ${dateStr}) is not an array. Skipping score calculation.`);
                   }
-                  return sum + pointsToAward;
-              }, 0);
-              storedKarma.push({date: dateStr, score});
-              } catch (error) {
-              console.error('Error parsing karma data for date', dateStr, error);
+                } catch (error) {
+                  console.error('Error parsing karma data for date', dateStr, error);
+                }
               }
           }
         }
@@ -562,7 +578,7 @@ const ReflectionsPage = () => {
           } catch (e) {
               const text = localStorage.getItem(key);
               if (text) loadedReflections[dateStr] = { text };
-              console.warn('Could not parse reflection as JSON for', dateStr, 'treating as text-only.');
+              console.warn('Could not parse reflection as JSON for', dateStr, 'treating as text-only if possible.');
           }
         }
       }
