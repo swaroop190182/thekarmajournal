@@ -33,10 +33,10 @@ export default function LandingPage() {
             <Image
               alt="Karma Journal Hero Image"
               className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last shadow-xl"
-              height="400"
+              height="360"
               src="/kj.jpg"
               data-ai-hint="abstract karma spiritual"
-              width="600"
+              width="640"
             />
             </div>
           </div>
@@ -175,5 +175,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
