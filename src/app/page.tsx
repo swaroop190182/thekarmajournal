@@ -25,17 +25,17 @@ export default function LandingPage() {
                   <Link href="/home">Get Started</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="shadow-md border-primary text-primary hover:bg-primary/10 transition-transform hover:scale-105">
-                  <Link href="/home">Explore Features</Link>
+                  <Link href="/features">Explore Features</Link>
                 </Button>
               </div>
             </div>
             <div className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last shadow-xl flex items-center justify-center bg-muted/50">
             <Image
-              alt="Calm Illustration"
+              alt="Karma Journal Hero Image"
               className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last shadow-xl"
               height="400"
-              src="/images/budha.jpg"
-              data-ai-hint="calm abstract illustration"
+              src="/kj.jpg"
+              data-ai-hint="abstract karma spiritual"
               width="600"
             />
             </div>
@@ -64,9 +64,18 @@ export default function LandingPage() {
               <p className="text-sm text-muted-foreground">Set personal goals, track your streaks, and stay motivated on your journey.</p>
             </div>
             <div className="grid gap-2 p-4 rounded-lg hover:bg-accent/10 transition-colors shadow-sm border border-border/50">
-              <Brain className="h-8 w-8 text-accent" />
-              <h3 className="text-lg font-bold text-foreground">AI-Powered Insights</h3>
+              <div className="flex items-center">
+                <Brain className="h-8 w-8 text-accent mr-2" />
+                <h3 className="text-lg font-bold text-foreground">AI-Powered Insights</h3>
+              </div>
               <p className="text-sm text-muted-foreground">Receive personalized feedback and suggestions from our AI coach to help you grow.</p>
+              <Image 
+                src="/luma.png" 
+                alt="Luma AI Assistant" 
+                width={40} 
+                height={40} 
+                className="rounded-full mt-2" 
+              />
             </div>
             <div className="grid gap-2 p-4 rounded-lg hover:bg-accent/10 transition-colors shadow-sm border border-border/50">
               <LineChart className="h-8 w-8 text-accent" />
@@ -148,8 +157,11 @@ export default function LandingPage() {
             &copy; ${new Date().getFullYear()} Karma Journal. All rights reserved.
           </p>
           <nav className="flex gap-4 sm:gap-6 mt-4 md:mt-0">
+            <Link href="/features" className="text-xs text-muted-foreground hover:text-foreground">
+              Features
+            </Link>
             <Link href="/home" className="text-xs text-muted-foreground hover:text-foreground">
-              Home
+              Record
             </Link>
             <Link href="/reflections" className="text-xs text-muted-foreground hover:text-foreground">
               Reflections
@@ -163,3 +175,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
