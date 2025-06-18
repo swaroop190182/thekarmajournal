@@ -549,8 +549,8 @@ const HabitsManagerClient = () => {
           {/* AI Counsellor Ela Card */}
           <Card className="flex flex-col border rounded-lg p-4 shadow-sm bg-card h-[calc(100vh-20rem)] min-h-[500px] max-h-[700px]">
             <div className="flex items-center space-x-3 mb-4">
-              <Avatar>
-                <AvatarImage src="https://placehold.co/40x40.png" alt="Ela AI Counsellor" data-ai-hint="female friendly bot avatar" />
+              <Avatar className="h-12 w-12">
+                <AvatarImage src="https://placehold.co/100x100.png" alt="Ela AI Counsellor" data-ai-hint="female professional" />
                 <AvatarFallback>ELA</AvatarFallback>
               </Avatar>
               <div>
@@ -570,7 +570,7 @@ const HabitsManagerClient = () => {
                   >
                     {msg.role === 'model' && (
                       <Avatar className="h-6 w-6 self-start">
-                        <AvatarImage src="https://placehold.co/40x40.png" alt="Ela" data-ai-hint="female friendly bot avatar"/>
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="Ela" data-ai-hint="female professional" />
                         <AvatarFallback>E</AvatarFallback>
                       </Avatar>
                     )}
@@ -582,7 +582,7 @@ const HabitsManagerClient = () => {
                 ))}
                 {isElaLoading && (
                     <div className="flex justify-start space-x-2">
-                        <Avatar className="h-6 w-6 self-start"><AvatarImage src="https://placehold.co/40x40.png" alt="Ela" data-ai-hint="female friendly bot avatar"/><AvatarFallback>E</AvatarFallback></Avatar>
+                        <Avatar className="h-6 w-6 self-start"><AvatarImage src="https://placehold.co/40x40.png" alt="Ela" data-ai-hint="female professional"/><AvatarFallback>E</AvatarFallback></Avatar>
                         <div className="p-3 rounded-lg bg-muted text-muted-foreground rounded-bl-none text-sm shadow-sm">Ela is typing...</div>
                     </div>
                 )}
@@ -762,5 +762,3 @@ const HabitsManagerClient = () => {
 };
 
 export default HabitsManagerClient;
-
-    

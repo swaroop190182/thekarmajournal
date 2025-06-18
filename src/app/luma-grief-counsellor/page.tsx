@@ -84,7 +84,7 @@ const LumaGriefCounsellorPage = () => {
         >
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12">
-              <AvatarImage src="https://placehold.co/60x60.png" alt="Luma AI Grief Counsellor" data-ai-hint="abstract gentle shape" />
+              <AvatarImage src="https://placehold.co/60x60.png" alt="Luma AI Grief Counsellor" data-ai-hint="calm abstract" />
               <AvatarFallback style={{ backgroundColor: 'hsl(var(--luma-accent-lavender))', color: 'hsl(var(--luma-text-primary))' }}>L</AvatarFallback>
             </Avatar>
             <div>
@@ -107,7 +107,7 @@ const LumaGriefCounsellorPage = () => {
                 >
                   {msg.role === 'model' && (
                     <Avatar className="h-8 w-8 self-start">
-                      <AvatarImage src="https://placehold.co/40x40.png" alt="Luma" data-ai-hint="abstract gentle shape" />
+                      <AvatarImage src="https://placehold.co/40x40.png" alt="Luma" data-ai-hint="calm abstract" />
                       <AvatarFallback style={{ backgroundColor: 'hsl(var(--luma-accent-lavender))', color: 'hsl(var(--luma-text-primary))' }}>L</AvatarFallback>
                     </Avatar>
                   )}
@@ -137,7 +137,7 @@ const LumaGriefCounsellorPage = () => {
               {isLoading && (
                 <div className="flex justify-start space-x-2">
                   <Avatar className="h-8 w-8 self-start">
-                    <AvatarImage src="https://placehold.co/40x40.png" alt="Luma" data-ai-hint="abstract gentle shape" />
+                    <AvatarImage src="https://placehold.co/40x40.png" alt="Luma" data-ai-hint="calm abstract" />
                     <AvatarFallback style={{ backgroundColor: 'hsl(var(--luma-accent-lavender))', color: 'hsl(var(--luma-text-primary))' }}>L</AvatarFallback>
                   </Avatar>
                   <div 
