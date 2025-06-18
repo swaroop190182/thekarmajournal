@@ -136,15 +136,22 @@ body {
   }
 }
 
-/* Landing Page Dark Red Theme Overrides */
+/* Landing Page Theme Overrides for better contrast on kjbackground.jpg */
 .landing-page-dark-red-theme {
-  --primary: 0 60% 35%;
-  --foreground: 0 55% 30%;
-  --muted-foreground: 0 45% 45%;
-  --accent: 0 65% 45%;
-  /* Keep --primary-foreground and --accent-foreground from global for contrast */
+  /* Button colors */
+  --primary: 0 60% 35%; /* Dark Red for button backgrounds */
+  --primary-foreground: 0 0% 98%; /* Very light text on primary buttons */
 
-  /* Add specific background for landing page */
+  /* Page text colors for contrast against background image */
+  --foreground: 0 0% 97%; /* Off-white for main text elements like H1, feature titles */
+  --muted-foreground: 0 0% 88%; /* Light grey for paragraphs, secondary text */
+  --accent: 0 50% 75%; /* Lighter, softer red for icons/accents */
+
+  /* Ensure card/popover text also contrasts if they were to be used directly on landing */
+  --card-foreground: 0 0% 97%;
+  --popover-foreground: 0 0% 97%;
+
+  /* Specific background for landing page */
   background-image: url('/kjbackground.jpg');
   background-size: cover;
   background-position: center center;
@@ -153,11 +160,18 @@ body {
 }
 
 .dark .landing-page-dark-red-theme {
-  --primary: 0 60% 55%;
-  --foreground: 0 55% 75%;
-  --muted-foreground: 0 45% 65%;
-  --accent: 0 65% 60%;
-  /* Keep --primary-foreground and --accent-foreground from global for contrast */
+  /* Button colors in dark mode */
+  --primary: 0 70% 45%; /* Slightly brighter Dark Red for buttons in dark mode */
+  --primary-foreground: 0 0% 98%; /* Light text on primary buttons */
+
+  /* Page text colors for contrast against background image in dark mode */
+  --foreground: 0 0% 98%; /* Very off-white for main text */
+  --muted-foreground: 0 0% 90%; /* Light grey for paragraphs */
+  --accent: 0 60% 80%; /* Lighter, brighter red for icons/accents */
+
+  /* Ensure card/popover text also contrasts */
+  --card-foreground: 0 0% 98%;
+  --popover-foreground: 0 0% 98%;
 }
 
 

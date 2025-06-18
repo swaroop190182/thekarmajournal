@@ -13,7 +13,7 @@ export default function LandingPage() {
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:gap-16 items-center">
             <div className="flex flex-col justify-center space-y-4 text-center lg:text-left">
               <div className="space-y-4">
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-primary">
+                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-foreground">
                   Karma Journal: Cultivate Balance, Inspire Growth.
                 </h1>
                 <p className="max-w-[600px] text-muted-foreground md:text-xl lg:text-lg xl:text-xl mx-auto lg:mx-0">
@@ -47,7 +47,7 @@ export default function LandingPage() {
       <section className="w-full py-12 md:py-20 lg:py-28">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-primary">Not Just a Tracker. A Life Companion.</h2>
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-foreground">Not Just a Tracker. A Life Companion.</h2>
             <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
               Karma Journal is designed to be more than just a log. It&apos;s a tool for self-discovery, helping you understand your patterns, celebrate your progress, and gently guide you towards healthier habits and a more positive outlook.
             </p>
@@ -104,7 +104,7 @@ export default function LandingPage() {
       <section className="w-full py-12 md:py-20 lg:py-28 bg-secondary/30">
         <div className="container grid items-center justify-center gap-4 px-4 text-center md:px-6 mx-auto">
           <div className="space-y-3 mb-8">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight text-primary">Simple. Personal. Powerful.</h2>
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight text-foreground">Simple. Personal. Powerful.</h2>
             <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
               Getting started with Karma Journal is easy. Follow these simple steps to begin your journey towards self-improvement.
             </p>
@@ -139,7 +139,7 @@ export default function LandingPage() {
         <div className="container px-4 md:px-6 mx-auto">
           <div className="flex flex-col items-center space-y-6 text-center p-8 bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 rounded-xl shadow-xl border border-primary/20">
             <Sparkles className="h-12 w-12 text-primary" />
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-primary">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-foreground">
               Begin Your Journey to a More Mindful Life
             </h2>
             <p className="max-w-2xl text-muted-foreground md:text-lg">
