@@ -1,6 +1,7 @@
 
 import type {Metadata} from 'next';
 import Link from 'next/link';
+import Image from 'next/image'; // Import next/image
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from "@/components/theme-provider"
@@ -33,8 +34,17 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
         <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container flex h-14 max-w-screen-2xl items-center">
-            <Link href="/" className="mr-6 flex items-center space-x-2 text-xl font-bold text-primary hover:text-primary/80">
-              Karma Journal
+            <Link href="/" className="mr-6 flex items-center space-x-2">
+              <Image
+                src="/logo.png"
+                alt="Karma Journal Logo"
+                width={32} // Standard small logo size
+                height={32} // Adjust if your logo is not square
+                className="h-8 w-auto" // Maintain aspect ratio, h-8 is approx 32px
+              />
+              <span className="font-bold text-primary hover:text-primary/80 hidden sm:inline-block">
+                 {/* Text can be added back here if needed, or kept hidden */}
+              </span>
             </Link>
             <nav className="flex flex-1 items-center space-x-4 lg:space-x-6">
               <Link href="/features" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
@@ -59,7 +69,6 @@ export default function RootLayout({
                 Impact
               </Link>
             </nav>
-            {/* "Get Started" button removed from here */}
           </div>
         </header>
         <main>{children}</main>
