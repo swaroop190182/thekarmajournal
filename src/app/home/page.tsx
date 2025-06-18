@@ -879,6 +879,11 @@ export default function HomePage() {
     <TooltipProvider>
       <div className="flex flex-col items-center justify-center min-h-screen py-2">
         <main className="flex flex-col items-center justify-center w-full flex-1 px-4 text-center mt-8"> 
+          <div className="w-full max-w-3xl mb-3 text-left">
+            <p className="font-bold text-red-600 dark:text-red-500">
+              Your data is your property. No one else including the developers of the app can access your data.
+            </p>
+          </div>
           {journalingStreak && journalingStreak.currentStreak > 0 && (
             <div className={cn(
                 "flex items-center p-2 mb-4 bg-background border border-border rounded-lg shadow-md self-start max-w-3xl w-full",
