@@ -248,6 +248,41 @@ const chemicalCalendarBgClasses: Record<NonNullable<KarmaActivity['chemicalRelea
     none: "", 
 };
 
+// Helper function to compute neuro-wellness scores for a given date string
+const computeNeuroWellnessForDate = (dateStr: string): DailyNeuroWellnessData => {
+  const newScores: DailyNeuroWellnessData = {
+    date: dateStr,
+    dopamine: { score: 0, activityCount: 0 },
+    serotonin: { score: 0, activityCount: 0 },
+    oxytocin: { score: 0, activityCount: 0 },
+    endorphins: { score: 0, activityCount: 0 },
+  };
+
+  if (typeof window === 'undefined') return newScores;
+
+  const activitiesString = localStorage.getItem(`karma-${dateStr}`);
+  let dailyActivities: SelectedKarmaActivity[] = [];
+  if (activitiesString) {
+    try {
+      dailyActivities = JSON.parse(activitiesString);
+    } catch (e) {
+      console.error(`Error parsing activities for neuro wellness calculation on ${dateStr}`, e);
+    }
+  }
+
+  dailyActivities.forEach(activity => {
+    const activityDef = ActivityList.find(a => a.name === activity.name);
+    if (activityDef && activityDef.chemicalRelease && activityDef.chemicalRelease !== 'none') {
+      const chemical = activityDef.chemicalRelease;
+      if (newScores[chemical].score < 100) {
+        newScores[chemical].score = Math.min(100, newScores[chemical].score + 20); 
+      }
+      newScores[chemical].activityCount += 1;
+    }
+  });
+  return newScores;
+};
+
 
 const ReflectionsPage = () => {
   const [timePeriod, setTimePeriod] = useState<'week' | 'month'>('week');
@@ -306,39 +341,10 @@ const ReflectionsPage = () => {
     if (typeof window === 'undefined') return;
     setIsNeuroWellnessLoading(true);
     const dateStr = format(targetDate, 'yyyy-MM-dd');
-    const neuroStorageKey = `${NEURO_WELLNESS_STORAGE_KEY_PREFIX}${dateStr}`;
     
-    // Always calculate fresh scores from karma activities
-    const activitiesString = localStorage.getItem(`karma-${dateStr}`);
-    let dailyActivities: SelectedKarmaActivity[] = [];
-    if (activitiesString) {
-      try {
-        dailyActivities = JSON.parse(activitiesString);
-      } catch (e) {
-        console.error("Error parsing activities for neuro wellness calculation", e);
-      }
-    }
-
-    const newScores: DailyNeuroWellnessData = {
-      date: dateStr,
-      dopamine: { score: 0, activityCount: 0 },
-      serotonin: { score: 0, activityCount: 0 },
-      oxytocin: { score: 0, activityCount: 0 },
-      endorphins: { score: 0, activityCount: 0 },
-    };
-
-    dailyActivities.forEach(activity => {
-      const activityDef = ActivityList.find(a => a.name === activity.name);
-      if (activityDef && activityDef.chemicalRelease && activityDef.chemicalRelease !== 'none') {
-        const chemical = activityDef.chemicalRelease;
-        if (newScores[chemical].score < 100) {
-          newScores[chemical].score = Math.min(100, newScores[chemical].score + 20); 
-        }
-        newScores[chemical].activityCount += 1;
-      }
-    });
+    const newScores = computeNeuroWellnessForDate(dateStr);
     
-    localStorage.setItem(neuroStorageKey, JSON.stringify(newScores)); // Save the newly calculated scores
+    localStorage.setItem(`${NEURO_WELLNESS_STORAGE_KEY_PREFIX}${dateStr}`, JSON.stringify(newScores));
     setDailyNeuroWellness(newScores);
     setIsNeuroWellnessLoading(false);
   }, []);
@@ -349,18 +355,8 @@ const ReflectionsPage = () => {
     for (let i = 6; i >= 0; i--) {
         const targetDate = subDays(endDate, i);
         const dateStr = format(targetDate, 'yyyy-MM-dd');
-        const neuroStorageKey = `${NEURO_WELLNESS_STORAGE_KEY_PREFIX}${dateStr}`;
-        const storedData = localStorage.getItem(neuroStorageKey);
-        if (storedData) {
-            try {
-                data.push(JSON.parse(storedData));
-            } catch (e) {
-                console.warn("Could not parse stored neuro data for weekly trend for date:", dateStr);
-                 data.push({ date: dateStr, dopamine: {score:0, activityCount:0}, serotonin: {score:0, activityCount:0}, oxytocin: {score:0, activityCount:0}, endorphins: {score:0, activityCount:0} });
-            }
-        } else {
-            data.push({ date: dateStr, dopamine: {score:0, activityCount:0}, serotonin: {score:0, activityCount:0}, oxytocin: {score:0, activityCount:0}, endorphins: {score:0, activityCount:0} });
-        }
+        const dailyScores = computeNeuroWellnessForDate(dateStr);
+        data.push(dailyScores);
     }
     setWeeklyNeuroData(data);
   }, []);
@@ -700,14 +696,19 @@ const ReflectionsPage = () => {
     const activitiesString = localStorage.getItem(`karma-${formattedDate}`);
     if (activitiesString) {
       try {
-        dailyActivities = JSON.parse(activitiesString);
-        dailyScore = dailyActivities.reduce((sum, activity) => {
-            let pointsToAward = activity.points;
-            if (activity.requiresPhoto && !activity.mediaDataUri) {
-                pointsToAward = Math.round(activity.points * 0.7);
-            }
-            return sum + pointsToAward;
-        }, 0);
+        const parsedActivities = JSON.parse(activitiesString);
+        if (Array.isArray(parsedActivities)) {
+            dailyActivities = parsedActivities;
+            dailyScore = dailyActivities.reduce((sum, activity) => {
+                let pointsToAward = activity.points;
+                if (activity.requiresPhoto && !activity.mediaDataUri) {
+                    pointsToAward = Math.round(activity.points * 0.7);
+                }
+                return sum + pointsToAward;
+            }, 0);
+        } else {
+             console.warn(`Activities for date ${formattedDate} is not an array:`, parsedActivities);
+        }
       } catch (e) { console.error("Error parsing activities for summary", e); }
     }
     
@@ -812,15 +813,20 @@ const ReflectionsPage = () => {
 
       if (activitiesString) {
         try {
-          dailyActivities = JSON.parse(activitiesString) as SelectedKarmaActivity[];
-          dailyScoreValue = dailyActivities.reduce((sum, activity) => {
-            let pointsToAward = activity.points;
-            if (activity.requiresPhoto && !activity.mediaDataUri) {
-              pointsToAward = Math.round(activity.points * 0.7);
-            }
-            return sum + pointsToAward;
-          }, 0);
-          selfieActivityValue = dailyActivities.find(act => act.name === "Daily Selfie" && act.mediaDataUri && act.mediaType === 'image');
+          const parsedActivities = JSON.parse(activitiesString);
+          if(Array.isArray(parsedActivities)){
+             dailyActivities = parsedActivities as SelectedKarmaActivity[];
+            dailyScoreValue = dailyActivities.reduce((sum, activity) => {
+              let pointsToAward = activity.points;
+              if (activity.requiresPhoto && !activity.mediaDataUri) {
+                pointsToAward = Math.round(activity.points * 0.7);
+              }
+              return sum + pointsToAward;
+            }, 0);
+            selfieActivityValue = dailyActivities.find(act => act.name === "Daily Selfie" && act.mediaDataUri && act.mediaType === 'image');
+          } else {
+            console.warn(`Activities for ${formattedDate} is not an array, found:`, parsedActivities);
+          }
         } catch (e) { console.error("Error parsing activities for cell", e); }
       }
       
@@ -1939,4 +1945,5 @@ const ReflectionsPage = () => {
 };
 
 export default ReflectionsPage;
+
 
