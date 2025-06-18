@@ -152,7 +152,7 @@ body {
   --popover-foreground: 120 35% 20%;
 
   /* Specific background for landing page */
-  background-image: url('/kjbackground.jpg');
+  background-image: url('/kjbackground.png');
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
