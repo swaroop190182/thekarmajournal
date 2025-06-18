@@ -4,16 +4,13 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
-  /* Add floral-inspired gradient background */
-  /* This will be layered on top of the theme's --background color */
-  background-image:
-    radial-gradient(circle at 10% 20%, hsla(var(--primary), 0.08) 0%, transparent 25%),
-    radial-gradient(circle at 90% 30%, hsla(var(--accent), 0.07) 0%, transparent 25%),
-    radial-gradient(circle at 30% 85%, hsla(var(--secondary), 0.1) 0%, transparent 30%),
-    radial-gradient(circle at 70% 70%, hsla(var(--primary), 0.06) 0%, transparent 20%),
-    radial-gradient(circle at 50% 50%, hsla(var(--accent), 0.05) 0%, transparent 20%);
-  background-size: 100vw 100vh; /* Cover the viewport */
-  background-attachment: fixed; /* Fixed background during scroll */
+  /* Set the background image */
+  background-image: url('/background.png');
+  background-size: cover; /* Ensure the image covers the entire viewport */
+  background-position: center center; /* Center the image */
+  background-repeat: no-repeat; /* Prevent the image from repeating */
+  background-attachment: fixed; /* Keep the background fixed during scroll */
+  /* The theme's --background color (applied via @apply bg-background) will be underneath this image */
 }
 
 @layer base {
