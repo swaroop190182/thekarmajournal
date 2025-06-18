@@ -36,10 +36,11 @@ body {
     --input: 100 15% 95%;             /* Very light greenish input background */
     --ring: 100 30% 45%;              /* Ring color related to primary */
 
-    --chart-1: 90 40% 50%;    /* Main green */
-    --chart-2: 90 30% 65%;    /* Lighter green */
-    --chart-3: 40 10% 50%;    /* Muted warm grey/beige */
-    --chart-4: 90 20% 75%;    /* Very light green */
+    /* Updated Chart Colors for Legend Consistency */
+    --chart-1: 24 95% 53%;    /* Orange (Endorphins) */
+    --chart-2: 145 63% 42%;   /* Green (Serotonin) */
+    --chart-3: 262 70% 54%;   /* Purple (Dopamine) */
+    --chart-4: 330 80% 60%;   /* Pink (Oxytocin) */
     --chart-5: 0 0% 60%;      /* Medium grey */
     --chart-6: 100 25% 55%;   /* Another shade of muted green */
     --chart-7: 30 15% 70%;    /* Light beige */
@@ -93,10 +94,11 @@ body {
     --input: 100 10% 20%;
     --ring: 100 30% 60%;
     
-    --chart-1: 90 40% 60%;    /* Main green, brighter */
-    --chart-2: 90 30% 70%;    /* Lighter green */
-    --chart-3: 40 10% 65%;    /* Muted warm grey/beige, lighter */
-    --chart-4: 90 20% 80%;    /* Very light green */
+    /* Updated Chart Colors for Legend Consistency - Dark Theme */
+    --chart-1: 24 85% 60%;    /* Orange (Endorphins) */
+    --chart-2: 145 55% 50%;   /* Green (Serotonin) */
+    --chart-3: 262 60% 62%;   /* Purple (Dopamine) */
+    --chart-4: 330 70% 68%;   /* Pink (Oxytocin) */
     --chart-5: 0 0% 70%;      /* Lighter Medium grey */
     --chart-6: 100 25% 60%;   /* Another shade of muted green */
     --chart-7: 30 15% 75%;    /* Light beige */
