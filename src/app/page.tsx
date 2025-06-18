@@ -30,7 +30,14 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last shadow-xl flex items-center justify-center bg-muted/50">
-              <p className="text-sm text-muted-foreground">Hero image area</p>
+            <Image
+              alt="Calm Illustration"
+              className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last shadow-xl"
+              height="400"
+              src="/images/budha.jpg"
+              data-ai-hint="calm abstract illustration"
+              width="600"
+            />
             </div>
           </div>
         </div>
