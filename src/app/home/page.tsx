@@ -95,6 +95,8 @@ export default function HomePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
 
   const [journalingStreak, setJournalingStreak] = useState<StreakData | null>(null);
   const [streakJustUpdated, setStreakJustUpdated] = useState(false);
@@ -195,7 +197,6 @@ export default function HomePage() {
         catch (e) { console.error("Failed to parse saved journal entries:", e); setJournalEntries({});}
       } else { setJournalEntries({});}
 
-      // Load mood for the selected date
       const savedReflection = localStorage.getItem(`${REFLECTION_STORAGE_KEY_PREFIX}${formattedDate}`);
       if (savedReflection) {
         try {
@@ -211,16 +212,49 @@ export default function HomePage() {
       setVoiceJournalStatus("Ready to record your thoughts!");
       setExpandedHabit(null);
       setStreakJustUpdated(false);
-    }
-  }, [date]);
+      
+      // Reset camera state when date changes, but don't stop global stream here
+      setIsCameraOn(false);
+      // setSelfieDataURL(null); // Keep selfie if it's for the new date from a previous interaction before save? Or clear? Clearing is safer.
+      const dailySelfieActivity = ActivityList.find(act => act.name === "Daily Selfie");
+      if (dailySelfieActivity) {
+        const existingSelfie = loggedActivities.find(act => act.name === "Daily Selfie" && act.mediaDataUri);
+        setSelfieDataURL(existingSelfie ? existingSelfie.mediaDataUri : null);
+      } else {
+        setSelfieDataURL(null);
+      }
 
+
+    }
+  }, [date, toast]); // Added toast to dependencies
+
+  // Camera Permission useEffect
   useEffect(() => {
-    return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+    const getCameraPermission = async () => {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          streamRef.current = mediaStream;
+          setHasCameraPermission(true);
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          // Toasting here might be too aggressive on initial load if user hasn't interacted yet.
+          // Consider toasting only on explicit button click if permission is false.
+        }
+      } else {
+        setHasCameraPermission(false);
+        toast({ variant: "destructive", title: "Unsupported Browser", description: "Camera access not supported." });
       }
     };
-  }, []);
+    getCameraPermission();
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [toast]);
 
 
   const analyzeTextAndLogActivitiesAI = async (textToAnalyze: string) => {
@@ -409,34 +443,72 @@ export default function HomePage() {
     finally { setIsTranscribing(false); if (!transcript) setVoiceJournalStatus(prev => prev.includes("failed") || prev.includes("Error") ? prev : "Ready for new recording or analysis.");}
   };
 
-  const handleEnableCamera = async () => {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true }); setHasCameraPermission(true);
-        if (videoRef.current) videoRef.current.srcObject = stream;
-        setIsCameraOn(true);
-      } catch (err) { console.error("Error accessing camera:", err); setHasCameraPermission(false); toast({ variant: "destructive", title: "Camera Access Denied", description: "Enable camera permissions." }); }
-    } else { toast({ variant: "destructive", title: "Unsupported Browser", description: "Camera access not supported." });}
-  };
-  const handleCaptureSelfie = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current; const canvas = canvasRef.current;
-      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-      canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
-      setSelfieDataURL(canvas.toDataURL('image/png')); setIsCameraOn(false);
-      if (video.srcObject) (video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+  const handleEnableCamera = () => {
+    if (hasCameraPermission === true && streamRef.current) {
+      if (videoRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch(err => console.warn("Video play failed:", err));
+      }
+      setIsCameraOn(true);
+    } else if (hasCameraPermission === false) {
+      toast({ variant: "destructive", title: "Camera Access Denied", description: "Please enable camera permissions in your browser settings. You may need to refresh the page after granting permission." });
+    } else if (hasCameraPermission === null) {
+      toast({ title: "Camera Initializing", description: "Camera permission is being checked. Please try again in a moment." });
+      // Optionally, re-trigger permission request here or guide user.
+      // For now, relying on initial useEffect.
     }
   };
-  const handleUploadSelfie = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) { const reader = new FileReader(); reader.onloadend = () => setSelfieDataURL(reader.result as string); reader.readAsDataURL(file); }
+
+  const handleDisableCamera = () => {
+    setIsCameraOn(false);
+    if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null; 
+    }
   };
-  const handleClearSelfie = () => {
-    setSelfieDataURL(null);
-    if (isCameraOn && videoRef.current && videoRef.current.srcObject) { (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop()); setIsCameraOn(false); }
+  
+  const handleCaptureSelfie = () => {
+    if (videoRef.current && canvasRef.current && isCameraOn) {
+      const video = videoRef.current; const canvas = canvasRef.current;
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/png');
+        setSelfieDataURL(dataUrl);
+        const dailySelfieActivity = ActivityList.find(act => act.name === "Daily Selfie");
+        if (dailySelfieActivity) {
+            handleActivityMediaUpdate(dailySelfieActivity.name, dataUrl, 'image');
+        }
+      }
+      handleDisableCamera(); // Turn off camera view after capture
+    }
   };
 
- const handleActivityToggle = (activity: KarmaActivity) => {
+  const handleUploadSelfie = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) { 
+      const reader = new FileReader(); 
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        setSelfieDataURL(dataUrl);
+        const dailySelfieActivity = ActivityList.find(act => act.name === "Daily Selfie");
+        if (dailySelfieActivity) {
+            handleActivityMediaUpdate(dailySelfieActivity.name, dataUrl, 'image');
+        }
+      }; 
+      reader.readAsDataURL(file); 
+    }
+  };
+
+  const handleClearSelfie = () => {
+    setSelfieDataURL(null);
+    handleDisableCamera();
+    // Also remove from loggedActivities if "Daily Selfie" was logged with media
+    setLoggedActivities(prev => prev.map(act => act.name === "Daily Selfie" ? {...act, mediaDataUri: null, mediaType: null} : act));
+  };
+
+  const handleActivityToggle = (activity: KarmaActivity) => {
     setLoggedActivities((prevActivities) => {
       let newActivities = [...prevActivities];
       const existingActivityIndex = newActivities.findIndex((a) => a.name === activity.name);
@@ -449,6 +521,12 @@ export default function HomePage() {
       } else {
         const newSelectedActivity: SelectedKarmaActivity = { ...activity, mediaDataUri: null, mediaType: null, triggers: '' };
         if (activity.quantificationUnit) newSelectedActivity.quantity = null;
+        
+        // If it's the Daily Selfie activity and a selfie already exists, pre-fill it
+        if(activity.name === "Daily Selfie" && selfieDataURL) {
+            newSelectedActivity.mediaDataUri = selfieDataURL;
+            newSelectedActivity.mediaType = 'image';
+        }
 
         newActivities.push(newSelectedActivity);
         if (activity.type === "Habit / Addiction") {
@@ -460,8 +538,31 @@ export default function HomePage() {
       return newActivities;
     });
   };
+  
+  const handleActivityMediaUpdate = (activityName: string, dataUri: string | null, mediaType: 'image' | 'video' | null) => {
+    setLoggedActivities(prev => {
+        const activityExists = prev.some(act => act.name === activityName);
+        if (activityExists) {
+            return prev.map(act => act.name === activityName ? { ...act, mediaDataUri: dataUri, mediaType } : act);
+        } else {
+            // If activity not yet logged, add it with the media
+            const activityDefinition = ActivityList.find(act => act.name === activityName);
+            if (activityDefinition) {
+                const newSelectedActivity: SelectedKarmaActivity = { 
+                    ...activityDefinition, 
+                    mediaDataUri: dataUri, 
+                    mediaType, 
+                    quantity: activityDefinition.quantificationUnit ? null : undefined,
+                    triggers: '' 
+                };
+                return [...prev, newSelectedActivity];
+            }
+        }
+        return prev;
+    });
+  };
 
-  useEffect(() => { if (selfieDataURL) { setLoggedActivities(prev => prev.map(act => act.name === "Daily Selfie" ? { ...act, mediaDataUri: selfieDataURL, mediaType: 'image' } : act ));}}, [selfieDataURL]);
+
   const handleMediaUpload = (activityName: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -470,12 +571,8 @@ export default function HomePage() {
         let mediaType: 'image'|'video'|null = null;
         if (file.type.startsWith('image/')) mediaType = 'image';
         else if (file.type.startsWith('video/')) mediaType = 'video';
-
-        setLoggedActivities(prev => prev.map(act => act.name === activityName ? { ...act, mediaDataUri: reader.result as string, mediaType } : act));
-
-        setTimeout(() => {
-          toast({ title: "Media Uploaded", description: `Media for ${activityName} added.` });
-        }, 0);
+        handleActivityMediaUpdate(activityName, reader.result as string, mediaType);
+        toast({ title: "Media Uploaded", description: `Media for ${activityName} added.` });
       };
       reader.readAsDataURL(file);
     }
@@ -510,7 +607,6 @@ export default function HomePage() {
     const formattedDate = formatDate(date, 'yyyy-MM-dd');
     localStorage.setItem(`karma-${formattedDate}`, JSON.stringify(loggedActivities));
 
-    // Save reflection (journal text and mood)
     const fullJournalText = journalPrompts.map(p => journalEntries[p.id] || "").join("\n\n").trim();
     const reflectionDataToSave = {
       text: fullJournalText,
@@ -928,12 +1024,15 @@ export default function HomePage() {
               <Card className="p-4 bg-secondary/30">
                 <CardTitle className="text-lg mb-2 flex items-center"><CameraIconLucide className="mr-2 h-5 w-5"/>Daily Selfie</CardTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                  {!isCameraOn ? (
-                      <Button onClick={handleEnableCamera}><Video className="mr-2 h-4 w-4"/>Enable Camera</Button>
-                  ) : (
-                      <Button onClick={() => { setIsCameraOn(false); if (videoRef.current?.srcObject) {(videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());} }} variant="outline"><VideoOff className="mr-2 h-4 w-4"/>Disable Camera</Button>
-                  )}
-                  <Button onClick={handleCaptureSelfie} disabled={!isCameraOn}><CameraIconLucide className="mr-2 h-4 w-4"/>Capture Selfie</Button>
+                   {isCameraOn ? (
+                      <Button onClick={handleDisableCamera} variant="outline"><VideoOff className="mr-2 h-4 w-4"/>Disable Camera</Button>
+                    ) : (
+                      <Button onClick={handleEnableCamera} disabled={hasCameraPermission === null || hasCameraPermission === false}>
+                        <Video className="mr-2 h-4 w-4"/>
+                        {hasCameraPermission === null ? "Checking Camera..." : hasCameraPermission === false ? "Camera Disabled" : "Enable Camera"}
+                      </Button>
+                    )}
+                  <Button onClick={handleCaptureSelfie} disabled={!isCameraOn || hasCameraPermission !== true}><CameraIconLucide className="mr-2 h-4 w-4"/>Capture Selfie</Button>
                 </div>
                 <label htmlFor="upload-selfie" className="w-full">
                     <Button asChild className="w-full mb-2 cursor-pointer">
@@ -941,18 +1040,17 @@ export default function HomePage() {
                     </Button>
                     <input id="upload-selfie" type="file" accept="image/*" onChange={handleUploadSelfie} className="sr-only" />
                   </label>
-
-                {isCameraOn && (
-                  <div className="my-2">
-                    <video ref={videoRef} className="w-full aspect-video rounded-md border bg-muted" autoPlay playsInline muted />
+                
+                <div className={cn("my-2 relative", { 'hidden': !isCameraOn && hasCameraPermission !== false })}>
+                    <video ref={videoRef} className={cn("w-full aspect-video rounded-md border bg-muted", {'hidden': !isCameraOn})} autoPlay playsInline muted />
                     {hasCameraPermission === false && (
-                      <Alert variant="destructive" className="mt-2">
+                      <Alert variant="destructive" className={cn("mt-2", {'absolute inset-0 flex flex-col items-center justify-center bg-destructive/90': isCameraOn })}>
                           <AlertTitle>Camera Access Denied</AlertTitle>
-                          <AlertDescription>Please enable camera permissions in your browser settings.</AlertDescription>
+                          <AlertDescription>Please enable camera permissions in your browser settings. You may need to refresh.</AlertDescription>
                       </Alert>
                     )}
-                  </div>
-                )}
+                </div>
+
                 <canvas ref={canvasRef} className="hidden"></canvas>
                 {selfieDataURL && (
                   <div className="mt-2 relative w-48 h-48 mx-auto">
@@ -1129,7 +1227,6 @@ export default function HomePage() {
           </Button>
         </main>
 
-          {/* Randomized Affirmation Dialog */}
           <Dialog open={showAffirmation} onOpenChange={setShowAffirmation}>
               <DialogContent className="sm:max-w-md">
                   <DialogHeader>
@@ -1154,3 +1251,4 @@ export default function HomePage() {
   );
 }
 
+    
