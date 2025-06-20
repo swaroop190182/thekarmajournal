@@ -26,12 +26,13 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ActivityList } from '@/app/constants';
-import type { SelectedKarmaActivity } from '@/app/types';
+import type { SelectedKarmaActivity, KarmaActivity as KarmaActivityType } from '@/app/types';
 import { Info, Bot, Send, User, Upload, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { elaAddictionCounsellorFlow, type ElaCounsellorInput } from '@/ai/flows/ela-addiction-counsellor-flow';
 import { cn } from "@/lib/utils";
+import { format, parseISO, isValid, subDays } from 'date-fns';
 
 const articles = {
   'Alcohol Addiction': [
@@ -256,6 +257,14 @@ interface ChatMessage {
   content: string;
 }
 
+interface AddictionInstanceForFlow {
+    date: string;
+    quantity: number | null | undefined;
+    quantificationUnit?: string;
+    triggers?: string;
+}
+
+
 const programDurations = ["3 Months", "6 Months", "9 Months", "1 Year"];
 const programsData: Record<string, Program[]> = {
   'Alcohol Addiction': [
@@ -461,11 +470,43 @@ const HabitsManagerClient = () => {
     setChatMessagesEla(prev => [...prev, newUserMessage]);
     setUserMessageEla('');
     setIsElaLoading(true);
+
+    let addictionLogForFlow: AddictionInstanceForFlow[] = [];
+    if (typeof window !== 'undefined') {
+        const today = new Date();
+        for (let i = 0; i < 30; i++) { // Look back 30 days
+            const targetDate = subDays(today, i);
+            const dateStr = format(targetDate, 'yyyy-MM-dd');
+            const activitiesString = localStorage.getItem(`karma-${dateStr}`);
+            if (activitiesString) {
+                try {
+                    const dailyActivities: SelectedKarmaActivity[] = JSON.parse(activitiesString);
+                    dailyActivities.forEach(activity => {
+                        if (activity.name === selectedConcernType) {
+                            const activityDefinition = ActivityList.find(a => a.name === activity.name);
+                            addictionLogForFlow.push({
+                                date: dateStr,
+                                quantity: activity.quantity,
+                                quantificationUnit: activityDefinition?.quantificationUnit,
+                                triggers: activity.triggers || '',
+                            });
+                        }
+                    });
+                } catch (e) { console.warn(`Error parsing activities for Ela's history on ${dateStr}`, e); }
+            }
+        }
+        addictionLogForFlow.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Sort by date ascending
+        if (addictionLogForFlow.length > 15) { // Limit to most recent 15 entries if too many
+            addictionLogForFlow = addictionLogForFlow.slice(-15);
+        }
+    }
+
     try {
       const input: ElaCounsellorInput = {
         addictionType: selectedConcernType,
         userQuery: newUserMessage.content,
-        chatHistory: chatMessagesEla.slice(0, -1), 
+        chatHistory: chatMessagesEla.slice(0, -1).filter(msg => msg.role === 'user' || msg.role === 'model'), // Ensure only valid roles
+        addictionHistory: addictionLogForFlow,
       };
       const response = await elaAddictionCounsellorFlow(input);
       const elaResponse: ChatMessage = { role: 'model', content: response.elaResponse };
