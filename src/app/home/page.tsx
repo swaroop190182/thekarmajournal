@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { KarmaActivity, SelectedKarmaActivity, FlowActivity, JournalEntries, StreakData, MoodOption as AppMoodOption } from "../types";
 import { ActivityList, affirmationsList, chemicalLegend as appChemicalLegend, moodOptions } from "../constants";
 import { useToast } from "@/hooks/use-toast";
@@ -94,7 +94,7 @@ export default function HomePage() {
   const [isCameraOn, setIsCameraOn] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null); // null: unknown, true: granted, false: denied
   const streamRef = useRef<MediaStream | null>(null);
 
 
@@ -213,48 +213,28 @@ export default function HomePage() {
       setExpandedHabit(null);
       setStreakJustUpdated(false);
       
-      // Reset camera state when date changes, but don't stop global stream here
-      setIsCameraOn(false);
-      // setSelfieDataURL(null); // Keep selfie if it's for the new date from a previous interaction before save? Or clear? Clearing is safer.
+      setIsCameraOn(false); 
       const dailySelfieActivity = ActivityList.find(act => act.name === "Daily Selfie");
       if (dailySelfieActivity) {
-        const existingSelfie = loggedActivities.find(act => act.name === "Daily Selfie" && act.mediaDataUri);
+        const currentActivitiesForDate = savedActivities ? (JSON.parse(savedActivities) as SelectedKarmaActivity[]) : [];
+        const existingSelfie = currentActivitiesForDate.find(act => act.name === "Daily Selfie" && act.mediaDataUri);
         setSelfieDataURL(existingSelfie ? existingSelfie.mediaDataUri : null);
       } else {
         setSelfieDataURL(null);
       }
-
-
     }
-  }, [date, toast]); // Added toast to dependencies
+  }, [date]);
 
-  // Camera Permission useEffect
+
+  // Cleanup camera stream on component unmount
   useEffect(() => {
-    const getCameraPermission = async () => {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        try {
-          const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          streamRef.current = mediaStream;
-          setHasCameraPermission(true);
-        } catch (error) {
-          console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
-          // Toasting here might be too aggressive on initial load if user hasn't interacted yet.
-          // Consider toasting only on explicit button click if permission is false.
-        }
-      } else {
-        setHasCameraPermission(false);
-        toast({ variant: "destructive", title: "Unsupported Browser", description: "Camera access not supported." });
-      }
-    };
-    getCameraPermission();
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
     };
-  }, [toast]);
+  }, []);
 
 
   const analyzeTextAndLogActivitiesAI = async (textToAnalyze: string) => {
@@ -443,28 +423,55 @@ export default function HomePage() {
     finally { setIsTranscribing(false); if (!transcript) setVoiceJournalStatus(prev => prev.includes("failed") || prev.includes("Error") ? prev : "Ready for new recording or analysis.");}
   };
 
-  const handleEnableCamera = () => {
-    if (hasCameraPermission === true && streamRef.current) {
-      if (videoRef.current) {
-        videoRef.current.srcObject = streamRef.current;
-        videoRef.current.play().catch(err => console.warn("Video play failed:", err));
-      }
-      setIsCameraOn(true);
-    } else if (hasCameraPermission === false) {
+  const handleEnableCamera = async () => {
+    if (hasCameraPermission === false) { // Explicitly denied previously
       toast({ variant: "destructive", title: "Camera Access Denied", description: "Please enable camera permissions in your browser settings. You may need to refresh the page after granting permission." });
-    } else if (hasCameraPermission === null) {
-      toast({ title: "Camera Initializing", description: "Camera permission is being checked. Please try again in a moment." });
-      // Optionally, re-trigger permission request here or guide user.
-      // For now, relying on initial useEffect.
+      return;
+    }
+
+    if (streamRef.current && videoRef.current) { // Stream already acquired
+      videoRef.current.srcObject = streamRef.current;
+      try {
+        await videoRef.current.play();
+        setIsCameraOn(true);
+      } catch (err) {
+        console.warn("Video play failed:", err);
+        toast({ variant: "destructive", title: "Camera Error", description: "Could not play video stream." });
+      }
+      return;
+    }
+
+    // Attempt to get stream if not already acquired
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        streamRef.current = mediaStream;
+        setHasCameraPermission(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          await videoRef.current.play();
+          setIsCameraOn(true);
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({ variant: "destructive", title: "Camera Access Denied", description: "Please enable camera permissions to use this feature." });
+      }
+    } else {
+      setHasCameraPermission(false); // Should already be null or true from initial state, this handles no mediaDevices case.
+      toast({ variant: "destructive", title: "Unsupported Browser", description: "Camera access not supported." });
     }
   };
+
 
   const handleDisableCamera = () => {
     setIsCameraOn(false);
     if (videoRef.current) {
         videoRef.current.pause();
-        videoRef.current.srcObject = null; 
+        videoRef.current.srcObject = null;
     }
+    // Do not stop tracks in streamRef.current here, allow for quick re-enable.
+    // Tracks are stopped on component unmount.
   };
   
   const handleCaptureSelfie = () => {
@@ -481,7 +488,7 @@ export default function HomePage() {
             handleActivityMediaUpdate(dailySelfieActivity.name, dataUrl, 'image');
         }
       }
-      handleDisableCamera(); // Turn off camera view after capture
+      handleDisableCamera(); 
     }
   };
 
@@ -504,7 +511,6 @@ export default function HomePage() {
   const handleClearSelfie = () => {
     setSelfieDataURL(null);
     handleDisableCamera();
-    // Also remove from loggedActivities if "Daily Selfie" was logged with media
     setLoggedActivities(prev => prev.map(act => act.name === "Daily Selfie" ? {...act, mediaDataUri: null, mediaType: null} : act));
   };
 
@@ -522,7 +528,6 @@ export default function HomePage() {
         const newSelectedActivity: SelectedKarmaActivity = { ...activity, mediaDataUri: null, mediaType: null, triggers: '' };
         if (activity.quantificationUnit) newSelectedActivity.quantity = null;
         
-        // If it's the Daily Selfie activity and a selfie already exists, pre-fill it
         if(activity.name === "Daily Selfie" && selfieDataURL) {
             newSelectedActivity.mediaDataUri = selfieDataURL;
             newSelectedActivity.mediaType = 'image';
@@ -545,7 +550,6 @@ export default function HomePage() {
         if (activityExists) {
             return prev.map(act => act.name === activityName ? { ...act, mediaDataUri: dataUri, mediaType } : act);
         } else {
-            // If activity not yet logged, add it with the media
             const activityDefinition = ActivityList.find(act => act.name === activityName);
             if (activityDefinition) {
                 const newSelectedActivity: SelectedKarmaActivity = { 
@@ -1027,9 +1031,9 @@ export default function HomePage() {
                    {isCameraOn ? (
                       <Button onClick={handleDisableCamera} variant="outline"><VideoOff className="mr-2 h-4 w-4"/>Disable Camera</Button>
                     ) : (
-                      <Button onClick={handleEnableCamera} disabled={hasCameraPermission === null || hasCameraPermission === false}>
+                      <Button onClick={handleEnableCamera} disabled={hasCameraPermission === false}>
                         <Video className="mr-2 h-4 w-4"/>
-                        {hasCameraPermission === null ? "Checking Camera..." : hasCameraPermission === false ? "Camera Disabled" : "Enable Camera"}
+                        {hasCameraPermission === null ? "Enable Camera" : hasCameraPermission === false ? "Camera Disabled" : "Enable Camera"}
                       </Button>
                     )}
                   <Button onClick={handleCaptureSelfie} disabled={!isCameraOn || hasCameraPermission !== true}><CameraIconLucide className="mr-2 h-4 w-4"/>Capture Selfie</Button>
@@ -1041,9 +1045,9 @@ export default function HomePage() {
                     <input id="upload-selfie" type="file" accept="image/*" onChange={handleUploadSelfie} className="sr-only" />
                   </label>
                 
-                <div className={cn("my-2 relative", { 'hidden': !isCameraOn && hasCameraPermission !== false })}>
+                <div className={cn("my-2 relative")}> {/* Always render video container */}
                     <video ref={videoRef} className={cn("w-full aspect-video rounded-md border bg-muted", {'hidden': !isCameraOn})} autoPlay playsInline muted />
-                    {hasCameraPermission === false && (
+                    { !(hasCameraPermission === null || hasCameraPermission === true) && ( // Show alert if permission is explicitly false
                       <Alert variant="destructive" className={cn("mt-2", {'absolute inset-0 flex flex-col items-center justify-center bg-destructive/90': isCameraOn })}>
                           <AlertTitle>Camera Access Denied</AlertTitle>
                           <AlertDescription>Please enable camera permissions in your browser settings. You may need to refresh.</AlertDescription>
@@ -1250,5 +1254,3 @@ export default function HomePage() {
     </TooltipProvider>
   );
 }
-
-    
