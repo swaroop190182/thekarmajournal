@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar as CalendarIcon, Mic, Square, Wand2, Camera as CameraIconLucide, Upload, Trash2, Play, Video, VideoOff, Sparkles as SparklesIcon, Brain, Users, Coins, Award as GoalIcon, Handshake as VolunteerIcon, HeartPulse, BookText, Edit3, Loader2, Activity as ActivityIcon, Star, HelpCircle, ListChecks, Tags, ShieldCheck, HandCoins, Flame, ThumbsUp, MessageCircleQuestion, Smile as SmileIconLucide, Meh as MehIconLucide, Frown as FrownIconLucide, Laugh as LaughIconLucide, Angry as AngryIconLucide, Palette as PaletteIconMood } from "lucide-react";
+import { Calendar as CalendarIcon, Mic, Square, Wand2, Camera as CameraIconLucide, Upload, Trash2, Play, Video, VideoOff, Sparkles as SparklesIcon, Brain, Users, Coins, Award as GoalIcon, Handshake as VolunteerIcon, HeartPulse, BookText, Edit3, Loader2, Activity as ActivityIcon, Star, HelpCircle, ListChecks, Tags, HandCoins, Flame, ThumbsUp, MessageCircleQuestion, Smile as SmileIconLucide, Meh as MehIconLucide, Frown as FrownIconLucide, Laugh as LaughIconLucide, Angry as AngryIconLucide, Palette as PaletteIconMood } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -35,8 +35,6 @@ const FAVORITE_ACTIVITIES_STORAGE_KEY = 'karma-journal-favorite-activities';
 const FAVORITE_AFFIRMATIONS_STORAGE_KEY = 'karma-journal-favorite-affirmations';
 const FIRST_REFLECTION_BADGE_KEY = 'badge-first-reflection-achieved';
 const TRIGGERS_SEPARATOR = ";;OTHER;;";
-const REQUIRED_TAPS_FOR_CRAVING_GAME = 10;
-const CRAVING_GAME_DURATION_SECONDS = 30;
 
 
 const journalPrompts = [
@@ -68,7 +66,7 @@ const chemicalColorClasses: Record<NonNullable<KarmaActivity['chemicalRelease']>
     serotonin: { border: "border-green-400", icon: "text-green-500", ring: "ring-green-500" },
     dopamine: { border: "border-purple-400", icon: "text-purple-500", ring: "ring-purple-500" },
     oxytocin: { border: "border-pink-400", icon: "text-pink-500", ring: "ring-pink-500" },
-    none: { border: "border-input", icon: "text-muted-foreground", ring: "ring-ring" }, 
+    none: { border: "border-input", icon: "text-muted-foreground", ring: "ring-ring" },
 };
 
 
@@ -100,13 +98,6 @@ export default function HomePage() {
 
   const [journalingStreak, setJournalingStreak] = useState<StreakData | null>(null);
   const [streakJustUpdated, setStreakJustUpdated] = useState(false);
-
-  const [showCravingGame, setShowCravingGame] = useState(false);
-  const [cravingGameConfig, setCravingGameConfig] = useState<{ activityName: string | null }>({ activityName: null });
-  const [tapCount, setTapCount] = useState(0);
-  const [cravingTimeLeft, setCravingTimeLeft] = useState(CRAVING_GAME_DURATION_SECONDS);
-  const cravingGameTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [cravingGameEndedMessage, setCravingGameEndedMessage] = useState<string | null>(null);
 
   const [showAffirmation, setShowAffirmation] = useState(false);
   const [currentAffirmation, setCurrentAffirmation] = useState<string>("");
@@ -203,7 +194,7 @@ export default function HomePage() {
         try { setJournalEntries(JSON.parse(savedJournalEntries));}
         catch (e) { console.error("Failed to parse saved journal entries:", e); setJournalEntries({});}
       } else { setJournalEntries({});}
-      
+
       // Load mood for the selected date
       const savedReflection = localStorage.getItem(`${REFLECTION_STORAGE_KEY_PREFIX}${formattedDate}`);
       if (savedReflection) {
@@ -219,7 +210,7 @@ export default function HomePage() {
       setTranscript(null);
       setVoiceJournalStatus("Ready to record your thoughts!");
       setExpandedHabit(null);
-      setStreakJustUpdated(false); 
+      setStreakJustUpdated(false);
     }
   }, [date]);
 
@@ -228,23 +219,8 @@ export default function HomePage() {
       if (videoRef.current && videoRef.current.srcObject) {
         (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
       }
-      if (cravingGameTimerRef.current) clearTimeout(cravingGameTimerRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (showCravingGame && cravingTimeLeft > 0 && tapCount < REQUIRED_TAPS_FOR_CRAVING_GAME) {
-      cravingGameTimerRef.current = setTimeout(() => setCravingTimeLeft(prev => prev - 1), 1000);
-    } else if (showCravingGame && (cravingTimeLeft === 0 || tapCount >= REQUIRED_TAPS_FOR_CRAVING_GAME)) {
-      if (cravingGameTimerRef.current) clearTimeout(cravingGameTimerRef.current);
-      if (tapCount >= REQUIRED_TAPS_FOR_CRAVING_GAME) {
-        setCravingGameEndedMessage(`You earned +5 Willpower Points for overcoming the urge for ${cravingGameConfig.activityName}! (Points are conceptual for now)`);
-      } else {
-        setCravingGameEndedMessage(`Time's up for ${cravingGameConfig.activityName}! Remember your coping strategies and support systems.`);
-      }
-    }
-    return () => { if (cravingGameTimerRef.current) clearTimeout(cravingGameTimerRef.current); };
-  }, [showCravingGame, cravingTimeLeft, tapCount, cravingGameConfig.activityName]);
 
 
   const analyzeTextAndLogActivitiesAI = async (textToAnalyze: string) => {
@@ -352,7 +328,7 @@ export default function HomePage() {
       return;
     }
     setIsAnalyzingJournal(true);
-    await new Promise(resolve => setTimeout(resolve, 300)); 
+    await new Promise(resolve => setTimeout(resolve, 300));
     const identifiedActivityNamesFromLocalSearch: string[] = [];
     const lowerCaseJournalText = fullJournalText.toLowerCase();
 
@@ -397,7 +373,7 @@ export default function HomePage() {
     setIsAnalyzingJournal(false);
   };
 
-  const handleStartRecording = async () => { 
+  const handleStartRecording = async () => {
     setAudioDataURL(null); setTranscript(null); setVoiceJournalStatus("Starting...");
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
@@ -419,7 +395,7 @@ export default function HomePage() {
     } else { toast({ variant: "destructive", title: "Unsupported Browser", description: "Audio recording not supported." }); setVoiceJournalStatus("Error: Audio recording not supported."); }
   };
   const handleStopRecording = () => { if (mediaRecorder) { mediaRecorder.stop(); setIsRecording(false); } };
-  const handleAnalyzeVoiceNote = async () => { 
+  const handleAnalyzeVoiceNote = async () => {
     if (!audioDataURL) { toast({ title: "No Audio", description: "Record voice note first." }); return; }
     setIsTranscribing(true); setTranscript(null); setVoiceJournalStatus("Transcribing audio...");
     try {
@@ -433,7 +409,7 @@ export default function HomePage() {
     finally { setIsTranscribing(false); if (!transcript) setVoiceJournalStatus(prev => prev.includes("failed") || prev.includes("Error") ? prev : "Ready for new recording or analysis.");}
   };
 
-  const handleEnableCamera = async () => { 
+  const handleEnableCamera = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true }); setHasCameraPermission(true);
@@ -442,7 +418,7 @@ export default function HomePage() {
       } catch (err) { console.error("Error accessing camera:", err); setHasCameraPermission(false); toast({ variant: "destructive", title: "Camera Access Denied", description: "Enable camera permissions." }); }
     } else { toast({ variant: "destructive", title: "Unsupported Browser", description: "Camera access not supported." });}
   };
-  const handleCaptureSelfie = () => {  
+  const handleCaptureSelfie = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current; const canvas = canvasRef.current;
       canvas.width = video.videoWidth; canvas.height = video.videoHeight;
@@ -451,11 +427,11 @@ export default function HomePage() {
       if (video.srcObject) (video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
     }
   };
-  const handleUploadSelfie = (event: React.ChangeEvent<HTMLInputElement>) => { 
+  const handleUploadSelfie = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) { const reader = new FileReader(); reader.onloadend = () => setSelfieDataURL(reader.result as string); reader.readAsDataURL(file); }
   };
-  const handleClearSelfie = () => {  
+  const handleClearSelfie = () => {
     setSelfieDataURL(null);
     if (isCameraOn && videoRef.current && videoRef.current.srcObject) { (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop()); setIsCameraOn(false); }
   };
@@ -464,7 +440,7 @@ export default function HomePage() {
     setLoggedActivities((prevActivities) => {
       let newActivities = [...prevActivities];
       const existingActivityIndex = newActivities.findIndex((a) => a.name === activity.name);
-      
+
       if (existingActivityIndex > -1) {
         newActivities.splice(existingActivityIndex, 1);
         if (activity.type === "Habit / Addiction" && expandedHabit === activity.name) {
@@ -473,12 +449,12 @@ export default function HomePage() {
       } else {
         const newSelectedActivity: SelectedKarmaActivity = { ...activity, mediaDataUri: null, mediaType: null, triggers: '' };
         if (activity.quantificationUnit) newSelectedActivity.quantity = null;
-        
+
         newActivities.push(newSelectedActivity);
         if (activity.type === "Habit / Addiction") {
-          setExpandedHabit(activity.name); 
+          setExpandedHabit(activity.name);
         } else {
-          setExpandedHabit(null); 
+          setExpandedHabit(null);
         }
       }
       return newActivities;
@@ -486,29 +462,29 @@ export default function HomePage() {
   };
 
   useEffect(() => { if (selfieDataURL) { setLoggedActivities(prev => prev.map(act => act.name === "Daily Selfie" ? { ...act, mediaDataUri: selfieDataURL, mediaType: 'image' } : act ));}}, [selfieDataURL]);
-  const handleMediaUpload = (activityName: string, event: React.ChangeEvent<HTMLInputElement>) => {  
+  const handleMediaUpload = (activityName: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) { 
-      const reader = new FileReader(); 
+    if (file) {
+      const reader = new FileReader();
       reader.onloadend = () => {
         let mediaType: 'image'|'video'|null = null;
-        if (file.type.startsWith('image/')) mediaType = 'image'; 
+        if (file.type.startsWith('image/')) mediaType = 'image';
         else if (file.type.startsWith('video/')) mediaType = 'video';
-        
+
         setLoggedActivities(prev => prev.map(act => act.name === activityName ? { ...act, mediaDataUri: reader.result as string, mediaType } : act));
-        
+
         setTimeout(() => {
           toast({ title: "Media Uploaded", description: `Media for ${activityName} added.` });
         }, 0);
-      }; 
+      };
       reader.readAsDataURL(file);
     }
   };
-  const handleQuantityChange = (activityName: string, event: React.ChangeEvent<HTMLInputElement>) => {  
+  const handleQuantityChange = (activityName: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setLoggedActivities(prev => prev.map(act => act.name === activityName ? { ...act, quantity: value === "" ? null : parseFloat(value) } : act));
   };
-  const handlePredefinedTriggerChange = (activityName: string, trigger: string, checked: boolean) => {  
+  const handlePredefinedTriggerChange = (activityName: string, trigger: string, checked: boolean) => {
     setLoggedActivities(prev => prev.map(act => {
       if (act.name === activityName) {
         const { predefined, other } = parseTriggersString(act.triggers);
@@ -517,7 +493,7 @@ export default function HomePage() {
       } return act;
     }));
   };
-  const handleOtherTriggerChange = (activityName: string, otherTriggerText: string) => { 
+  const handleOtherTriggerChange = (activityName: string, otherTriggerText: string) => {
     setLoggedActivities(prev => prev.map(act => {
       if (act.name === activityName) {
         const { predefined } = parseTriggersString(act.triggers);
@@ -533,7 +509,7 @@ export default function HomePage() {
     }
     const formattedDate = formatDate(date, 'yyyy-MM-dd');
     localStorage.setItem(`karma-${formattedDate}`, JSON.stringify(loggedActivities));
-    
+
     // Save reflection (journal text and mood)
     const fullJournalText = journalPrompts.map(p => journalEntries[p.id] || "").join("\n\n").trim();
     const reflectionDataToSave = {
@@ -541,7 +517,7 @@ export default function HomePage() {
       mood: selectedMood,
     };
     localStorage.setItem(`${REFLECTION_STORAGE_KEY_PREFIX}${formattedDate}`, JSON.stringify(reflectionDataToSave));
-    
+
     let journalEntryMade = fullJournalText !== "" || !!selectedMood;
     const dailyJournalingActivityLogged = loggedActivities.some(act => act.name === "Daily Journaling");
     let mainToastDescription = `Your Karma Journal for ${formatDate(date, "MMMM d, yyyy")} has been saved!`;
@@ -549,7 +525,7 @@ export default function HomePage() {
 
     if (dailyJournalingActivityLogged || journalEntryMade) {
       let currentStreakData = journalingStreak || { type: 'dailyJournaling', currentStreak: 0, longestStreak: 0, lastCompletedDate: null };
-      const today = startOfDay(date); 
+      const today = startOfDay(date);
       let streakUpdatedThisSave = false;
 
       if (currentStreakData.lastCompletedDate) {
@@ -565,7 +541,7 @@ export default function HomePage() {
           streakUpdatedThisSave = true;
         } else if (differenceInCalendarDays(today, lastDate) < 0) {
            // Journaling for a past date, don't break current streak unless it was for a date *after* current streak's last date
-        } else { 
+        } else {
              currentStreakData.currentStreak = 1;
              streakUpdatedThisSave = true;
         }
@@ -573,36 +549,26 @@ export default function HomePage() {
         currentStreakData.currentStreak = 1;
         streakUpdatedThisSave = true;
       }
-      
+
       if (streakUpdatedThisSave) {
         currentStreakData.lastCompletedDate = formattedDate;
          if (currentStreakData.currentStreak > currentStreakData.longestStreak) {
             currentStreakData.longestStreak = currentStreakData.currentStreak;
         }
-        setJournalingStreak({...currentStreakData}); 
+        setJournalingStreak({...currentStreakData});
         localStorage.setItem(JOURNAL_STREAK_STORAGE_KEY, JSON.stringify(currentStreakData));
         if (currentStreakData.currentStreak > 1) {
              mainToastDescription += ` Journaling streak: ${currentStreakData.currentStreak} days!`;
         }
-        setStreakJustUpdated(isSameDay(date, new Date())); 
+        setStreakJustUpdated(isSameDay(date, new Date()));
       }
-    }
-    
-    const negativeHabitLogged = loggedActivities.find(act => act.type === "Habit / Addiction" && act.points < 0);
-    let cravingGameToBeShown = false;
-    if (negativeHabitLogged) {
-      setCravingGameConfig({ activityName: negativeHabitLogged.name });
-      setTapCount(0);
-      setCravingTimeLeft(CRAVING_GAME_DURATION_SECONDS);
-      setCravingGameEndedMessage(null);
-      cravingGameToBeShown = true; 
     }
 
     let affirmationToBeShown = false;
     if (journalEntryMade) {
       const randomIndex = Math.floor(Math.random() * affirmationsList.length);
       setCurrentAffirmation(affirmationsList[randomIndex]);
-      affirmationToBeShown = true; 
+      affirmationToBeShown = true;
     }
 
     if (journalEntryMade && !firstReflectionBadgeAchieved) {
@@ -613,27 +579,8 @@ export default function HomePage() {
 
     toast({ title: "Recorded!", description: mainToastDescription });
 
-    if (cravingGameToBeShown) {
-        setTimeout(() => setShowCravingGame(true), 500); 
-    }
-    if (affirmationToBeShown && !cravingGameToBeShown) { 
+    if (affirmationToBeShown) {
         setTimeout(() => setShowAffirmation(true), 500);
-    } else if (affirmationToBeShown && cravingGameToBeShown) {
-        // Logic to show affirmation after craving game is handled in closeCravingGame
-    }
-  };
-
-  const handleTapCravingButton = () => {
-    if (tapCount < REQUIRED_TAPS_FOR_CRAVING_GAME && cravingTimeLeft > 0) {
-      setTapCount(prev => prev + 1);
-    }
-  };
-
-  const closeCravingGame = () => {
-    setShowCravingGame(false);
-    if (cravingGameTimerRef.current) clearTimeout(cravingGameTimerRef.current);
-    if (Object.values(journalEntries).some(entry => entry && entry.trim() !== "") && currentAffirmation) {
-        setTimeout(() => setShowAffirmation(true), 300);
     }
   };
 
@@ -686,11 +633,11 @@ export default function HomePage() {
 
     const chemical = activity.chemicalRelease && activity.chemicalRelease !== 'none' ? activity.chemicalRelease : 'none';
     const colorConfig = chemicalColorClasses[chemical];
-    
+
     const buttonBaseClasses = "w-16 h-16 rounded-full flex items-center justify-center p-0 shadow-md transition-all duration-150 ease-in-out";
     const buttonSelectedClasses = "bg-primary text-primary-foreground ring-2 ring-offset-2";
     const buttonUnselectedClasses = "bg-card hover:bg-muted/80";
-    
+
     const uniqueKey = `${activity.name}-${isFavoriteContext ? 'fav' : 'main'}-${isHabitTab ? 'habit' : 'gen'}`;
 
     return (
@@ -699,8 +646,8 @@ export default function HomePage() {
           <TooltipTrigger asChild>
             <div
               className="flex flex-col items-center cursor-pointer group/activitybutton"
-              onClick={(e) => { 
-                e.stopPropagation(); 
+              onClick={(e) => {
+                e.stopPropagation();
                 handleActivityToggle(activity);
               }}
             >
@@ -714,7 +661,7 @@ export default function HomePage() {
                           size="icon"
                           className="absolute -top-1 -left-1 h-7 w-7 p-1 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 dark:bg-blue-800 dark:hover:bg-blue-700 dark:text-blue-300 z-10"
                           aria-label={`Get help for ${activity.name}`}
-                          onClick={(e) => e.stopPropagation()} 
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <Link
                             href={`/habits-manager?concern=${encodeURIComponent(activity.name)}`}
@@ -734,15 +681,15 @@ export default function HomePage() {
                   variant={isSelected ? "default" : "outline"}
                   className={cn(
                     buttonBaseClasses,
-                    isSelected 
-                      ? cn(buttonSelectedClasses, colorConfig.ring) 
+                    isSelected
+                      ? cn(buttonSelectedClasses, colorConfig.ring)
                       : cn(buttonUnselectedClasses, colorConfig.border, isHabitTab && "hover:border-yellow-400"),
-                    "focus:ring-2 focus:ring-offset-2", 
-                    isSelected ? colorConfig.ring : "focus:ring-ring" 
+                    "focus:ring-2 focus:ring-offset-2",
+                    isSelected ? colorConfig.ring : "focus:ring-ring"
                   )}
                   aria-pressed={isSelected}
                 >
-                  <CurrentIconComponent className={cn("w-8 h-8", 
+                  <CurrentIconComponent className={cn("w-8 h-8",
                     isSelected ? "text-primary-foreground" : colorConfig.icon,
                     isHabitTab && !isSelected && "group-hover/activitybutton:text-yellow-500"
                   )} />
@@ -878,7 +825,7 @@ export default function HomePage() {
   return (
     <TooltipProvider>
       <div className="flex flex-col items-center justify-center min-h-screen py-2">
-        <main className="flex flex-col items-center justify-center w-full flex-1 px-4 text-center mt-8"> 
+        <main className="flex flex-col items-center justify-center w-full flex-1 px-4 text-center mt-8">
           <div className="w-full max-w-3xl mb-3 text-left">
             <p className="font-bold text-red-600 dark:text-red-500">
               Your data is your property. No one else including the developers of the app can access your data.
@@ -911,7 +858,7 @@ export default function HomePage() {
               </PopoverContent>
             </Popover>
           </div>
-          
+
           <Card className="w-full max-w-3xl mb-6 shadow-lg">
               <CardHeader>
                   <CardTitle className="flex items-center"><PaletteIconMood className="mr-2 h-6 w-6 text-primary"/>How are you feeling today?</CardTitle>
@@ -1182,37 +1129,6 @@ export default function HomePage() {
           </Button>
         </main>
 
-          {/* Craving Defense Mini-Game Dialog */}
-          <Dialog open={showCravingGame} onOpenChange={(isOpen) => { if (!isOpen) closeCravingGame(); }}>
-              <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                      <DialogTitle className="flex items-center">
-                          <ShieldCheck className="mr-2 h-6 w-6 text-destructive" /> Craving Defense for {cravingGameConfig.activityName}!
-                      </DialogTitle>
-                      <DialogDescription>
-                          {cravingGameEndedMessage ? cravingGameEndedMessage : `Quick! Tap the button ${REQUIRED_TAPS_FOR_CRAVING_GAME} times in ${CRAVING_GAME_DURATION_SECONDS} seconds to weaken the craving.`}
-                      </DialogDescription>
-                  </DialogHeader>
-                  {!cravingGameEndedMessage && (
-                      <div className="py-4 text-center space-y-4">
-                          <Button
-                              onClick={handleTapCravingButton}
-                              disabled={tapCount >= REQUIRED_TAPS_FOR_CRAVING_GAME || cravingTimeLeft === 0}
-                              className="w-full h-20 text-lg bg-primary hover:bg-primary/90"
-                          >
-                              Tap to Weaken! ({tapCount}/{REQUIRED_TAPS_FOR_CRAVING_GAME})
-                          </Button>
-                          <p className="text-2xl font-bold text-destructive">{cravingTimeLeft}s</p>
-                          {tapCount >= REQUIRED_TAPS_FOR_CRAVING_GAME && <p className="text-green-500 font-semibold">Success! You weakened the craving!</p>}
-                          {cravingTimeLeft === 0 && tapCount < REQUIRED_TAPS_FOR_CRAVING_GAME && <p className="text-red-500 font-semibold">Time's up! Stay strong.</p>}
-                      </div>
-                  )}
-                  <DialogFooter>
-                      <Button onClick={closeCravingGame}>Close</Button>
-                  </DialogFooter>
-              </DialogContent>
-          </Dialog>
-
           {/* Randomized Affirmation Dialog */}
           <Dialog open={showAffirmation} onOpenChange={setShowAffirmation}>
               <DialogContent className="sm:max-w-md">
@@ -1237,3 +1153,4 @@ export default function HomePage() {
     </TooltipProvider>
   );
 }
+
