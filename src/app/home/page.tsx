@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -144,8 +143,8 @@ export default function HomePage() {
   }, []);
 
   const accordionDefaultOpenValuesGeneral = useMemo(() => {
-    return activityTypes.filter(type => type !== "Habit / Addiction");
-  }, [activityTypes]);
+    return ["Wellbeing & Mindfulness"];
+  }, []);
 
 
   const totalScore = useMemo(() => {
