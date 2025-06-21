@@ -1,15 +1,14 @@
-
 "use client";
 
 import Link from "next/link";
-import { Calendar as CalendarIcon, Mic, Square, Wand2, Camera as CameraIconLucide, Upload, Trash2, Play, Video, VideoOff, Sparkles as SparklesIcon, Brain, Users, Coins, Award as GoalIcon, Handshake as VolunteerIcon, HeartPulse, BookText, Edit3, Loader2, Activity as ActivityIcon, Star, HelpCircle, ListChecks, Tags, HandCoins, Flame, ThumbsUp, MessageCircleQuestion, Smile as SmileIconLucide, Meh as MehIconLucide, Frown as FrownIconLucide, Laugh as LaughIconLucide, Angry as AngryIconLucide, Palette as PaletteIconMood } from "lucide-react";
+import { Calendar as CalendarIcon, Mic, Square, Wand2, Camera as CameraIconLucide, Upload, Trash2, Play, Video, VideoOff, Sparkles as SparklesIcon, Brain, Users, Coins, Award as GoalIcon, Handshake as VolunteerIcon, HeartPulse, BookText, Edit3, Loader2, Activity as ActivityIcon, Star, HelpCircle, ListChecks, Tags, HandCoins, Flame, ThumbsUp, MessageCircleQuestion, Smile as SmileIconLucide, Meh as MehIconLucide, Frown as FrownIconLucide, Laugh as LaughIconLucide, Angry as AngryIconLucide, Palette as PaletteIconMood, Paperclip, XCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import type { KarmaActivity, SelectedKarmaActivity, FlowActivity, JournalEntries, StreakData, MoodOption as AppMoodOption } from "../types";
+import type { KarmaActivity, SelectedKarmaActivity, FlowActivity, JournalEntries, JournalPromptEntry, StreakData, MoodOption as AppMoodOption } from "../types";
 import { ActivityList, affirmationsList, chemicalLegend as appChemicalLegend, moodOptions } from "../constants";
 import { useToast } from "@/hooks/use-toast";
 import { subDays, format as formatDate, parseISO, differenceInCalendarDays, isSameDay, startOfDay } from "date-fns";
@@ -81,22 +80,18 @@ export default function HomePage() {
   const [expandedHabit, setExpandedHabit] = useState<string | null>(null);
   const [selectedMood, setSelectedMood] = useState<string | undefined>(undefined);
 
-
+  const [activeMediaPromptId, setActiveMediaPromptId] = useState<string | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
-  const [audioDataURL, setAudioDataURL] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [voiceJournalStatus, setVoiceJournalStatus] = useState<string>("Ready to record your thoughts!");
+  const [voiceJournalStatus, setVoiceJournalStatus] = useState<string>("");
 
-  const [selfieDataURL, setSelfieDataURL] = useState<string | null>(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null); // null: unknown, true: granted, false: denied
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
 
   const [journalingStreak, setJournalingStreak] = useState<StreakData | null>(null);
   const [streakJustUpdated, setStreakJustUpdated] = useState(false);
@@ -193,9 +188,25 @@ export default function HomePage() {
 
       const savedJournalEntries = localStorage.getItem(`${JOURNAL_STORAGE_KEY_PREFIX}${formattedDate}`);
       if (savedJournalEntries) {
-        try { setJournalEntries(JSON.parse(savedJournalEntries));}
-        catch (e) { console.error("Failed to parse saved journal entries:", e); setJournalEntries({});}
-      } else { setJournalEntries({});}
+        try {
+          const parsed = JSON.parse(savedJournalEntries);
+          // Backwards compatibility check
+          const isOldFormat = Object.values(parsed).some(val => typeof val === 'string');
+          if (isOldFormat) {
+              const migratedEntries: JournalEntries = {};
+              for (const key in parsed) {
+                  if (typeof parsed[key] === 'string') {
+                      migratedEntries[key] = { text: parsed[key] };
+                  } else {
+                      migratedEntries[key] = parsed[key]; // Assume it's already in the new format if mixed
+                  }
+              }
+              setJournalEntries(migratedEntries);
+          } else {
+              setJournalEntries(parsed);
+          }
+        } catch (e) { console.error("Failed to parse saved journal entries:", e); setJournalEntries({}); }
+      } else { setJournalEntries({}); }
 
       const savedReflection = localStorage.getItem(`${REFLECTION_STORAGE_KEY_PREFIX}${formattedDate}`);
       if (savedReflection) {
@@ -207,21 +218,10 @@ export default function HomePage() {
         setSelectedMood(undefined);
       }
 
-      setAudioDataURL(null);
-      setTranscript(null);
-      setVoiceJournalStatus("Ready to record your thoughts!");
+      setVoiceJournalStatus("");
       setExpandedHabit(null);
       setStreakJustUpdated(false);
-      
-      setIsCameraOn(false); 
-      const dailySelfieActivity = ActivityList.find(act => act.name === "Daily Selfie");
-      if (dailySelfieActivity) {
-        const currentActivitiesForDate = savedActivities ? (JSON.parse(savedActivities) as SelectedKarmaActivity[]) : [];
-        const existingSelfie = currentActivitiesForDate.find(act => act.name === "Daily Selfie" && act.mediaDataUri);
-        setSelfieDataURL(existingSelfie ? existingSelfie.mediaDataUri : null);
-      } else {
-        setSelfieDataURL(null);
-      }
+      handleDisableCamera();
     }
   }, [date]);
 
@@ -235,7 +235,6 @@ export default function HomePage() {
       }
     };
   }, []);
-
 
   const analyzeTextAndLogActivitiesAI = async (textToAnalyze: string) => {
     if (!date) {
@@ -327,121 +326,106 @@ export default function HomePage() {
   };
 
   const handleJournalInputChange = (promptId: string, text: string) => {
-    const newEntries = { ...journalEntries, [promptId]: text };
-    setJournalEntries(newEntries);
-    if (date) {
-      localStorage.setItem(`${JOURNAL_STORAGE_KEY_PREFIX}${formatDate(date, 'yyyy-MM-dd')}`, JSON.stringify(newEntries));
-    }
+    setJournalEntries(prev => ({
+        ...prev,
+        [promptId]: { ...prev[promptId], text }
+    }));
   };
 
-  const handleTextJournalAnalysis = async () => {
-     const fullJournalText = journalPrompts.map(p => journalEntries[p.id] || "").join("\n\n").trim();
+  const handleAnalyzeFullJournal = async () => {
+     const fullJournalText = journalPrompts.map(p => journalEntries[p.id]?.text || "").join("\n\n").trim();
 
     if (!fullJournalText) {
       toast({ title: "Empty Journal", description: "Nothing to analyze in your journal entries.", variant: "default" });
       return;
     }
-    setIsAnalyzingJournal(true);
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const identifiedActivityNamesFromLocalSearch: string[] = [];
-    const lowerCaseJournalText = fullJournalText.toLowerCase();
-
-    ActivityList.forEach(activity => {
-      const searchTerms = [activity.name.toLowerCase(), ...(activity.keywords?.map(k => k.toLowerCase()) || [])];
-      if (searchTerms.some(term => lowerCaseJournalText.includes(term))) {
-        identifiedActivityNamesFromLocalSearch.push(activity.name);
-      }
-    });
-
-    if (identifiedActivityNamesFromLocalSearch.length > 0) {
-      setLoggedActivities(prevLoggedActivities => {
-        let newActivitiesAddedCount = 0;
-        const currentSelectedNames = new Set(prevLoggedActivities.map(a => a.name));
-        const activitiesToUpdate = [...prevLoggedActivities];
-
-        identifiedActivityNamesFromLocalSearch.forEach(activityName => {
-          if (!currentSelectedNames.has(activityName)) {
-            const fullActivity = ActivityList.find(act => act.name === activityName);
-            if (fullActivity) {
-              const activityToAdd: SelectedKarmaActivity = {
-                ...fullActivity,
-                mediaDataUri: null, mediaType: null,
-                quantity: fullActivity.quantificationUnit ? null : undefined,
-                triggers: '',
-              };
-              activitiesToUpdate.push(activityToAdd);
-              newActivitiesAddedCount++;
-            }
-          }
-        });
-        if (newActivitiesAddedCount > 0) {
-          toast({ title: "Local Analysis Complete", description: `${newActivitiesAddedCount} new activities auto-selected based on your journal. Review and save.` });
-        } else {
-          toast({ title: "Local Analysis Complete", description: "No new activities identified from your journal. Activities already selected were confirmed." });
-        }
-        return activitiesToUpdate;
-      });
-    } else {
-      toast({ title: "Local Analysis Complete", description: "No specific activities identified from your journal entries through keyword matching." });
-    }
-    setIsAnalyzingJournal(false);
+    await analyzeTextAndLogActivitiesAI(fullJournalText);
   };
-
-  const handleStartRecording = async () => {
-    setAudioDataURL(null); setTranscript(null); setVoiceJournalStatus("Starting...");
+  
+  const handleStartRecording = async (promptId: string) => {
+    setActiveMediaPromptId(promptId);
+    setVoiceJournalStatus("Starting...");
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const newMediaRecorder = new MediaRecorder(stream); setMediaRecorder(newMediaRecorder);
+        const newMediaRecorder = new MediaRecorder(stream); 
+        setMediaRecorder(newMediaRecorder);
         newMediaRecorder.ondataavailable = (event) => setAudioChunks((prev) => [...prev, event.data]);
+        
         newMediaRecorder.onstop = () => {
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          const audioUrl = URL.createObjectURL(audioBlob);
           const reader = new FileReader();
-          reader.onloadend = () => setAudioDataURL(reader.result as string);
+          reader.onloadend = () => {
+            const audioUrl = reader.result as string;
+            setJournalEntries(prev => ({
+                ...prev,
+                [promptId]: { ...prev[promptId], text: prev[promptId]?.text || '', audioDataUrl: audioUrl, transcript: null }
+            }));
+          };
           reader.readAsDataURL(audioBlob);
-          setAudioChunks([]); stream.getTracks().forEach(track => track.stop());
-          setVoiceJournalStatus("Recording finished. Ready to analyze or re-record.");
+          setAudioChunks([]); 
+          stream.getTracks().forEach(track => track.stop());
+          setVoiceJournalStatus("Recording finished.");
         };
-        newMediaRecorder.start(); setIsRecording(true);
-        setVoiceJournalStatus("Recording... Tap Stop when done.");
-      } catch (err) { console.error("Error accessing microphone:", err); toast({ variant: "destructive", title: "Microphone Access Denied", description: "Please enable microphone permissions." }); setVoiceJournalStatus("Error: Could not access microphone."); }
-    } else { toast({ variant: "destructive", title: "Unsupported Browser", description: "Audio recording not supported." }); setVoiceJournalStatus("Error: Audio recording not supported."); }
+        newMediaRecorder.start(); 
+        setIsRecording(true);
+        setVoiceJournalStatus("Recording...");
+      } catch (err) { 
+          console.error("Error accessing microphone:", err); 
+          toast({ variant: "destructive", title: "Microphone Access Denied", description: "Please enable microphone permissions." }); 
+          setVoiceJournalStatus("Error: Mic access denied."); 
+      }
+    } else { 
+        toast({ variant: "destructive", title: "Unsupported Browser", description: "Audio recording not supported." }); 
+        setVoiceJournalStatus("Error: Not supported."); 
+    }
   };
+
   const handleStopRecording = () => { if (mediaRecorder) { mediaRecorder.stop(); setIsRecording(false); } };
-  const handleAnalyzeVoiceNote = async () => {
-    if (!audioDataURL) { toast({ title: "No Audio", description: "Record voice note first." }); return; }
-    setIsTranscribing(true); setTranscript(null); setVoiceJournalStatus("Transcribing audio...");
+
+  const handleAnalyzeVoiceNote = async (promptId: string) => {
+    const audioDataUrl = journalEntries[promptId]?.audioDataUrl;
+    if (!audioDataUrl) { toast({ title: "No Audio", description: "Record a voice note first." }); return; }
+    
+    setIsTranscribing(true);
+    setVoiceJournalStatus("Transcribing...");
+    
     try {
-      const input: TranscribeAudioInput = { audioDataUri: audioDataURL };
+      const input: TranscribeAudioInput = { audioDataUri: audioDataUrl };
       const result = await transcribeAudio(input);
       if (result && result.transcript) {
-        setTranscript(result.transcript); setVoiceJournalStatus("Transcription complete! Analyzing for activities...");
-        await analyzeTextAndLogActivitiesAI(result.transcript);
-      } else { toast({ title: "Transcription Failed", variant: "destructive" }); setVoiceJournalStatus("Transcription failed."); }
-    } catch (error) { console.error("Error transcribing audio:", error); toast({ title: "Transcription Error", variant: "destructive" }); setVoiceJournalStatus("Error during transcription."); }
-    finally { setIsTranscribing(false); if (!transcript) setVoiceJournalStatus(prev => prev.includes("failed") || prev.includes("Error") ? prev : "Ready for new recording or analysis.");}
-  };
-
-  const handleEnableCamera = async () => {
-    if (hasCameraPermission === false) { // Explicitly denied previously
-      toast({ variant: "destructive", title: "Camera Access Denied", description: "Please enable camera permissions in your browser settings. You may need to refresh the page after granting permission." });
-      return;
-    }
-
-    if (streamRef.current && videoRef.current) { // Stream already acquired
-      videoRef.current.srcObject = streamRef.current;
-      try {
-        await videoRef.current.play();
-        setIsCameraOn(true);
-      } catch (err) {
-        console.warn("Video play failed:", err);
-        toast({ variant: "destructive", title: "Camera Error", description: "Could not play video stream." });
+        setJournalEntries(prev => ({
+            ...prev,
+            [promptId]: { ...prev[promptId], text: result.transcript, transcript: result.transcript }
+        }));
+        setVoiceJournalStatus("Transcription complete!");
+        toast({ title: "Transcription Successful", description: "Text has been added to the journal entry." });
+      } else { 
+          toast({ title: "Transcription Failed", variant: "destructive" }); 
+          setVoiceJournalStatus("Transcription failed."); 
       }
+    } catch (error) { 
+        console.error("Error transcribing audio:", error); 
+        toast({ title: "Transcription Error", variant: "destructive" }); 
+        setVoiceJournalStatus("Error during transcription."); 
+    }
+    finally { setIsTranscribing(false); }
+  };
+  
+  const handleEnableCamera = async (promptId: string) => {
+    setActiveMediaPromptId(promptId);
+
+    if (hasCameraPermission === false) {
+      toast({ variant: "destructive", title: "Camera Access Denied", description: "Please enable camera permissions in your browser settings." });
       return;
     }
 
-    // Attempt to get stream if not already acquired
+    if (streamRef.current) { // Stream already exists
+        if(videoRef.current) videoRef.current.srcObject = streamRef.current;
+        setIsCameraOn(true);
+        return;
+    }
+    
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -455,63 +439,60 @@ export default function HomePage() {
       } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
-        toast({ variant: "destructive", title: "Camera Access Denied", description: "Please enable camera permissions to use this feature." });
+        toast({ variant: "destructive", title: "Camera Access Denied", description: "Please enable camera permissions." });
       }
-    } else {
-      setHasCameraPermission(false); // Should already be null or true from initial state, this handles no mediaDevices case.
-      toast({ variant: "destructive", title: "Unsupported Browser", description: "Camera access not supported." });
     }
   };
-
 
   const handleDisableCamera = () => {
     setIsCameraOn(false);
     if (videoRef.current) {
         videoRef.current.pause();
-        videoRef.current.srcObject = null;
+        // Don't null out srcObject here to allow quick re-enable
     }
-    // Do not stop tracks in streamRef.current here, allow for quick re-enable.
-    // Tracks are stopped on component unmount.
   };
   
-  const handleCaptureSelfie = () => {
-    if (videoRef.current && canvasRef.current && isCameraOn) {
+  const handleCaptureImage = () => {
+    if (videoRef.current && canvasRef.current && isCameraOn && activeMediaPromptId) {
       const video = videoRef.current; const canvas = canvasRef.current;
       canvas.width = video.videoWidth; canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/png');
-        setSelfieDataURL(dataUrl);
-        const dailySelfieActivity = ActivityList.find(act => act.name === "Daily Selfie");
-        if (dailySelfieActivity) {
-            handleActivityMediaUpdate(dailySelfieActivity.name, dataUrl, 'image');
-        }
+        setJournalEntries(prev => ({
+            ...prev,
+            [activeMediaPromptId]: { ...prev[activeMediaPromptId], text: prev[activeMediaPromptId]?.text || '', imageDataUrl: dataUrl }
+        }));
       }
       handleDisableCamera(); 
     }
   };
 
-  const handleUploadSelfie = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadImage = (promptId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) { 
       const reader = new FileReader(); 
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
-        setSelfieDataURL(dataUrl);
-        const dailySelfieActivity = ActivityList.find(act => act.name === "Daily Selfie");
-        if (dailySelfieActivity) {
-            handleActivityMediaUpdate(dailySelfieActivity.name, dataUrl, 'image');
-        }
+        setJournalEntries(prev => ({
+            ...prev,
+            [promptId]: { ...prev[promptId], text: prev[promptId]?.text || '', imageDataUrl: dataUrl }
+        }));
       }; 
       reader.readAsDataURL(file); 
     }
   };
 
-  const handleClearSelfie = () => {
-    setSelfieDataURL(null);
-    handleDisableCamera();
-    setLoggedActivities(prev => prev.map(act => act.name === "Daily Selfie" ? {...act, mediaDataUri: null, mediaType: null} : act));
+  const handleClearMedia = (promptId: string, mediaType: 'audio' | 'image') => {
+    setJournalEntries(prev => {
+        const newEntries = { ...prev };
+        if (newEntries[promptId]) {
+            if(mediaType === 'audio') newEntries[promptId].audioDataUrl = null;
+            if(mediaType === 'image') newEntries[promptId].imageDataUrl = null;
+        }
+        return newEntries;
+    });
   };
 
   const handleActivityToggle = (activity: KarmaActivity) => {
@@ -528,11 +509,6 @@ export default function HomePage() {
         const newSelectedActivity: SelectedKarmaActivity = { ...activity, mediaDataUri: null, mediaType: null, triggers: '' };
         if (activity.quantificationUnit) newSelectedActivity.quantity = null;
         
-        if(activity.name === "Daily Selfie" && selfieDataURL) {
-            newSelectedActivity.mediaDataUri = selfieDataURL;
-            newSelectedActivity.mediaType = 'image';
-        }
-
         newActivities.push(newSelectedActivity);
         if (activity.type === "Habit / Addiction") {
           setExpandedHabit(activity.name);
@@ -610,15 +586,17 @@ export default function HomePage() {
     }
     const formattedDate = formatDate(date, 'yyyy-MM-dd');
     localStorage.setItem(`karma-${formattedDate}`, JSON.stringify(loggedActivities));
+    localStorage.setItem(`${JOURNAL_STORAGE_KEY_PREFIX}${formattedDate}`, JSON.stringify(journalEntries));
 
-    const fullJournalText = journalPrompts.map(p => journalEntries[p.id] || "").join("\n\n").trim();
+
+    const fullJournalText = journalPrompts.map(p => journalEntries[p.id]?.text || "").join("\n").trim();
     const reflectionDataToSave = {
       text: fullJournalText,
       mood: selectedMood,
     };
     localStorage.setItem(`${REFLECTION_STORAGE_KEY_PREFIX}${formattedDate}`, JSON.stringify(reflectionDataToSave));
 
-    let journalEntryMade = fullJournalText !== "" || !!selectedMood;
+    let journalEntryMade = fullJournalText !== "" || !!selectedMood || Object.values(journalEntries).some(e => e.audioDataUrl || e.imageDataUrl);
     const dailyJournalingActivityLogged = loggedActivities.some(act => act.name === "Daily Journaling");
     let mainToastDescription = `Your Karma Journal for ${formatDate(date, "MMMM d, yyyy")} has been saved!`;
     setStreakJustUpdated(false);
@@ -992,106 +970,84 @@ export default function HomePage() {
               </CardContent>
           </Card>
 
-
-          <Card className="w-full max-w-3xl mb-6 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center"><SparklesIcon className="mr-2 h-6 w-6 text-primary" /> Quick Capture: Voice & Visuals</CardTitle>
-              <CardDescription>Instantly log your thoughts with voice or add a selfie to your day.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Card className="p-4 bg-secondary/30">
-                <CardTitle className="text-lg mb-2 flex items-center"><Mic className="mr-2 h-5 w-5"/>Voice Journal</CardTitle>
-                <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                  {!isRecording ? (
-                    <Button onClick={handleStartRecording} disabled={isTranscribing || isAnalyzingJournal} className="flex-1">
-                      <Play className="mr-2 h-4 w-4" /> Start Recording
-                    </Button>
-                  ) : (
-                    <Button onClick={handleStopRecording} variant="destructive" className="flex-1">
-                      <Square className="mr-2 h-4 w-4" /> Stop Recording
-                    </Button>
-                  )}
-                  <Button onClick={handleAnalyzeVoiceNote} disabled={!audioDataURL || isTranscribing || isRecording || isAnalyzingJournal} className="flex-1">
-                    {isTranscribing || isAnalyzingJournal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                    Analyze Voice Note
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground mb-2 h-5">{voiceJournalStatus}</p>
-                {audioDataURL && !isRecording && (
-                  <audio controls src={audioDataURL} className="w-full mb-2">Your browser does not support the audio element.</audio>
-                )}
-                {transcript && (
-                  <Textarea value={transcript} readOnly placeholder="Voice transcript will appear here..." rows={3} className="bg-background"/>
-                )}
-              </Card>
-
-              <Card className="p-4 bg-secondary/30">
-                <CardTitle className="text-lg mb-2 flex items-center"><CameraIconLucide className="mr-2 h-5 w-5"/>Daily Selfie</CardTitle>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                   {isCameraOn ? (
-                      <Button onClick={handleDisableCamera} variant="outline"><VideoOff className="mr-2 h-4 w-4"/>Disable Camera</Button>
-                    ) : (
-                      <Button onClick={handleEnableCamera} disabled={hasCameraPermission === false}>
-                        <Video className="mr-2 h-4 w-4"/>
-                        {hasCameraPermission === null ? "Enable Camera" : hasCameraPermission === false ? "Camera Disabled" : "Enable Camera"}
-                      </Button>
-                    )}
-                  <Button onClick={handleCaptureSelfie} disabled={!isCameraOn || hasCameraPermission !== true}><CameraIconLucide className="mr-2 h-4 w-4"/>Capture Selfie</Button>
-                </div>
-                <label htmlFor="upload-selfie" className="w-full">
-                    <Button asChild className="w-full mb-2 cursor-pointer">
-                      <span><Upload className="mr-2 h-4 w-4"/>Upload Selfie</span>
-                    </Button>
-                    <input id="upload-selfie" type="file" accept="image/*" onChange={handleUploadSelfie} className="sr-only" />
-                  </label>
-                
-                <div className={cn("my-2 relative")}> {/* Always render video container */}
-                    <video ref={videoRef} className={cn("w-full aspect-video rounded-md border bg-muted", {'hidden': !isCameraOn})} autoPlay playsInline muted />
-                    { !(hasCameraPermission === null || hasCameraPermission === true) && ( // Show alert if permission is explicitly false
-                      <Alert variant="destructive" className={cn("mt-2", {'absolute inset-0 flex flex-col items-center justify-center bg-destructive/90': isCameraOn })}>
-                          <AlertTitle>Camera Access Denied</AlertTitle>
-                          <AlertDescription>Please enable camera permissions in your browser settings. You may need to refresh.</AlertDescription>
-                      </Alert>
-                    )}
-                </div>
-
-                <canvas ref={canvasRef} className="hidden"></canvas>
-                {selfieDataURL && (
-                  <div className="mt-2 relative w-48 h-48 mx-auto">
-                    <img src={selfieDataURL} alt="Selfie Preview" className="rounded-md object-cover w-full h-full border-2 border-primary shadow-md" />
-                    <Button onClick={handleClearSelfie} variant="destructive" size="icon" className="absolute -top-2 -right-2 rounded-full h-7 w-7">
-                      <Trash2 className="h-4 w-4"/>
-                    </Button>
-                  </div>
-                )}
-              </Card>
-            </CardContent>
-          </Card>
-
           <Card className="mt-2 w-full max-w-3xl mb-6">
             <CardHeader>
               <CardTitle className="flex items-center"><Brain className="mr-2 h-6 w-6 text-primary" /> Daily Journal & Intentions</CardTitle>
-              <CardDescription>Reflect on your day and set intentions. Your entries can help automatically select karma activities.</CardDescription>
+              <CardDescription>Reflect on your day and set intentions. Add voice notes or images to your entries.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {journalPrompts.map(prompt => (
-                <div key={prompt.id}>
-                  <label htmlFor={prompt.id} className="block text-sm font-medium text-left mb-1 text-muted-foreground">{prompt.question}</label>
-                  <Textarea
-                    id={prompt.id}
-                    value={journalEntries[prompt.id] || ""}
-                    onChange={(e) => handleJournalInputChange(prompt.id, e.target.value)}
-                    placeholder="Type your thoughts here..."
-                    rows={3}
-                    disabled={isAnalyzingJournal}
-                    dir="ltr"
-                    className="journal-entry-input"
-                  />
+            <CardContent className="space-y-6">
+              {journalPrompts.map((prompt) => {
+                const entry = journalEntries[prompt.id] || { text: '' };
+                const uniqueUploadId = `upload-image-${prompt.id}`;
+                return (
+                  <div key={prompt.id} className="p-4 border rounded-lg bg-secondary/30 space-y-3">
+                    <label htmlFor={prompt.id} className="block text-sm font-medium text-left text-muted-foreground">{prompt.question}</label>
+                    <Textarea
+                      id={prompt.id}
+                      value={entry.text}
+                      onChange={(e) => handleJournalInputChange(prompt.id, e.target.value)}
+                      placeholder="Type your thoughts here, or use the media buttons below..."
+                      rows={4}
+                      className="bg-background"
+                      dir="ltr"
+                    />
+
+                    {/* Media Previews */}
+                    <div className="space-y-2">
+                        {entry.imageDataUrl && (
+                            <div className="relative w-32 h-32">
+                                <img src={entry.imageDataUrl} alt="Journal entry preview" className="rounded-md object-cover w-full h-full border-2 border-primary/50 shadow-md" />
+                                <Button onClick={() => handleClearMedia(prompt.id, 'image')} variant="destructive" size="icon" className="absolute -top-2 -right-2 rounded-full h-6 w-6"><XCircle className="h-4 w-4"/></Button>
+                            </div>
+                        )}
+                        {entry.audioDataUrl && (
+                            <div className="flex items-center gap-2">
+                                <audio controls src={entry.audioDataUrl} className="w-full">Your browser does not support audio.</audio>
+                                <Button onClick={() => handleClearMedia(prompt.id, 'audio')} variant="destructive" size="icon" className="h-9 w-9 flex-shrink-0"><XCircle className="h-4 w-4"/></Button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Toolbar */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(isRecording && activeMediaPromptId === prompt.id) ? (
+                        <Button onClick={handleStopRecording} variant="destructive" size="sm"><Square className="mr-2 h-4 w-4"/>Stop</Button>
+                      ) : (
+                        <Button onClick={() => handleStartRecording(prompt.id)} variant="outline" size="sm" disabled={isRecording}><Mic className="mr-2 h-4 w-4"/>Record</Button>
+                      )}
+                      <Button onClick={() => handleEnableCamera(prompt.id)} variant="outline" size="sm" disabled={isCameraOn}><CameraIconLucide className="mr-2 h-4 w-4"/>Camera</Button>
+                      <Button asChild variant="outline" size="sm">
+                          <label htmlFor={uniqueUploadId} className="cursor-pointer"><Paperclip className="mr-2 h-4 w-4"/>Upload<input id={uniqueUploadId} type="file" accept="image/*" onChange={(e) => handleUploadImage(prompt.id, e)} className="sr-only" /></label>
+                      </Button>
+                      {entry.audioDataUrl && (
+                        <Button onClick={() => handleAnalyzeVoiceNote(prompt.id)} variant="outline" size="sm" disabled={isTranscribing} className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20">
+                          {isTranscribing && activeMediaPromptId === prompt.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
+                          Analyze
+                        </Button>
+                      )}
+                    </div>
+                    {isRecording && activeMediaPromptId === prompt.id && <p className="text-sm text-destructive animate-pulse">{voiceJournalStatus}</p>}
+                    {isTranscribing && activeMediaPromptId === prompt.id && <p className="text-sm text-primary animate-pulse">{voiceJournalStatus}</p>}
+                  </div>
+                );
+              })}
+              
+              {/* Shared Camera View */}
+              {isCameraOn && (
+                <div className="mt-4 p-4 border-2 border-dashed rounded-lg">
+                    <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay playsInline muted />
+                    <div className="flex gap-2 mt-2">
+                        <Button onClick={handleCaptureImage} className="flex-1">Capture Image</Button>
+                        <Button onClick={handleDisableCamera} variant="outline" className="flex-1">Close Camera</Button>
+                    </div>
                 </div>
-              ))}
-              <Button onClick={handleTextJournalAnalysis} disabled={isAnalyzingJournal} className="w-full mt-2">
-                {isAnalyzingJournal && !isTranscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SparklesIcon className="mr-2 h-4 w-4" />}
-                Analyze Full Journal & Auto-Select Activities
+              )}
+               <canvas ref={canvasRef} className="hidden"></canvas>
+
+
+              <Button onClick={handleAnalyzeFullJournal} disabled={isAnalyzingJournal} className="w-full mt-4">
+                {isAnalyzingJournal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SparklesIcon className="mr-2 h-4 w-4" />}
+                Analyze All Journal Text & Auto-Select Activities
               </Button>
             </CardContent>
           </Card>

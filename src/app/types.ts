@@ -1,4 +1,3 @@
-
 import type { LucideIcon } from 'lucide-react';
 import { z } from 'zod';
 
@@ -72,8 +71,17 @@ export const FlowActivitySchema = z.object({
 });
 export type FlowActivity = z.infer<typeof FlowActivitySchema>;
 
-// Type for storing journal entries (promptId: text)
-export type JournalEntries = Record<string, string>;
+// Type for storing individual journal prompt entries
+export type JournalPromptEntry = {
+  text: string;
+  audioDataUrl?: string | null;
+  imageDataUrl?: string | null;
+  transcript?: string | null;
+};
+
+// Type for storing journal entries for a day (promptId: JournalPromptEntry)
+export type JournalEntries = Record<string, JournalPromptEntry>;
+
 
 // Gamification types
 export type Badge = {
@@ -111,4 +119,3 @@ export type AffirmationCategory = {
 
 // Individual affirmation (simple string for now)
 export type Affirmation = string;
-
