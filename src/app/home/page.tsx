@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -68,6 +69,13 @@ const chemicalColorClasses: Record<NonNullable<KarmaActivity['chemicalRelease']>
     none: { border: "border-input", icon: "text-muted-foreground", ring: "ring-ring" },
 };
 
+const moodEmojis: { [key: string]: string } = {
+  excited: '😄',
+  happy: '🙂',
+  neutral: '😐',
+  disturbed: '😟',
+  sad: '😢',
+};
 
 export default function HomePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -944,7 +952,8 @@ export default function HomePage() {
               </CardHeader>
               <CardContent className="flex flex-wrap justify-center gap-3 sm:gap-4 p-4">
                   {moodOptions.map(mood => {
-                      const IconComponent = mood.icon;
+                      const emoji = moodEmojis[mood.id];
+                      const IconComponent = mood.icon as React.FC<React.SVGProps<SVGSVGElement>>;
                       return (
                           <Tooltip key={mood.id}>
                               <TooltipTrigger asChild>
@@ -957,7 +966,11 @@ export default function HomePage() {
                                       )}
                                       aria-pressed={selectedMood === mood.id}
                                   >
-                                      <IconComponent className={cn("h-8 w-8 sm:h-10 sm:w-10 mb-1", selectedMood === mood.id ? mood.color : 'text-muted-foreground group-hover:'+mood.color)} />
+                                      {emoji ? (
+                                        <span className="text-4xl sm:text-5xl mb-1">{emoji}</span>
+                                      ) : (
+                                        <IconComponent className={cn("h-8 w-8 sm:h-10 sm:w-10 mb-1", selectedMood === mood.id ? mood.color : 'text-muted-foreground group-hover:'+mood.color)} />
+                                      )}
                                       <span className={cn("text-xs sm:text-sm", selectedMood === mood.id ? mood.color : 'text-muted-foreground group-hover:'+mood.color)}>{mood.label}</span>
                                   </Button>
                               </TooltipTrigger>
