@@ -1527,36 +1527,58 @@ const ReflectionsPage = () => {
                 const reflectionString = localStorage.getItem(`${REFLECTION_STORAGE_KEY_PREFIX}${dateStr}`);
 
                 let dailyActivities: SelectedKarmaActivity[] = [];
-                if (activitiesString) try { dailyActivities = JSON.parse(activitiesString); } catch(e) {}
+                if (activitiesString) {
+                    try { 
+                        const parsed = JSON.parse(activitiesString);
+                        if (Array.isArray(parsed)) {
+                            dailyActivities = parsed;
+                        }
+                    } catch(e) {
+                        console.error("Error parsing activities for report on", dateStr, e);
+                    }
+                }
                 
                 let reflection: { text: string; mood?: string } | undefined;
-                if (reflectionString) try { reflection = JSON.parse(reflectionString); } catch(e) {}
+                if (reflectionString) {
+                    try { 
+                        reflection = JSON.parse(reflectionString); 
+                    } catch(e) {
+                        reflection = { text: reflectionString };
+                    }
+                }
 
-                const habitInstance = dailyActivities.find(act => act.name === reportHabit);
-                const positiveActivities = dailyActivities.filter(act => act.points > 0 && act.name !== reportHabit).map(act => act.name);
+                const habitInstance = dailyActivities.find(act => 
+                    act && typeof act.name === 'string' && act.name.trim() === reportHabit.trim()
+                );
+                
+                const positiveActivities = dailyActivities.filter(act => act && act.points > 0 && act.name !== reportHabit).map(act => act.name);
 
                 reportLogs.push({
                     date: dateStr,
                     mood: reflection?.mood,
                     habitInstance: habitInstance,
                     journalText: reflection?.text || "",
-                    positiveActivities: positiveActivities.slice(0, 3) // Limit for brevity
+                    positiveActivities: positiveActivities.slice(0, 3)
                 });
             });
 
             const habitInstances = reportLogs.map(l => l.habitInstance).filter(Boolean) as SelectedKarmaActivity[];
-            const totalInstances = habitInstances.length;
-            const totalQuantity = habitInstances.reduce((sum, item) => sum + (item.quantity || 0), 0);
-            const averageQuantity = totalInstances > 0 ? (totalQuantity / totalInstances).toFixed(2) : null;
             
             const allTriggers = habitInstances.flatMap(item => {
                 if (!item.triggers) return [];
                 const { predefined, other } = parseTriggersString(item.triggers);
-                return [...predefined, ...(other ? [other] : [])];
+                const combinedTriggers: string[] = [...predefined];
+                if (other) {
+                    combinedTriggers.push(other);
+                }
+                return combinedTriggers;
             });
 
             const triggerCounts = allTriggers.reduce((acc, trigger) => {
-                acc[trigger] = (acc[trigger] || 0) + 1;
+                const trimmedTrigger = trigger.trim();
+                if (trimmedTrigger) {
+                    acc[trimmedTrigger] = (acc[trimmedTrigger] || 0) + 1;
+                }
                 return acc;
             }, {} as Record<string, number>);
 
@@ -1570,8 +1592,8 @@ const ReflectionsPage = () => {
                 habitName: reportHabit,
                 reportDateRange: `${format(startDate, 'MMMM d, yyyy')} - ${format(today, 'MMMM d, yyyy')}`,
                 summary: {
-                    totalInstances,
-                    averageQuantity: averageQuantity,
+                    totalInstances: habitInstances.length,
+                    averageQuantity: habitInstances.length > 0 ? (habitInstances.reduce((sum, item) => sum + (item.quantity || 0), 0) / habitInstances.length).toFixed(2) : null,
                     topTriggers,
                 },
                 dailyLogs: reportLogs.reverse(), // Show most recent first
@@ -1585,7 +1607,7 @@ const ReflectionsPage = () => {
                 reportWindow.document.close();
                 setTimeout(() => {
                     reportWindow.print();
-                }, 500); // Delay to ensure CSS loads
+                }, 500);
             } else {
                 toast({ title: "Popup Blocked", description: "Please allow popups for this site to view the report.", variant: "destructive" });
             }
