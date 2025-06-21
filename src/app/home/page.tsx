@@ -707,6 +707,23 @@ export default function HomePage() {
     });
   };
 
+  const getReflectionPlaceholder = (mood: string | undefined): string => {
+    switch (mood) {
+      case 'excited':
+        return "Awesome! What amazing things happened today? What are you celebrating?";
+      case 'happy':
+        return "Great to hear! What brought you joy today? What are you grateful for?";
+      case 'neutral':
+        return "A calm day. What were the key events or observations from today? Any small wins?";
+      case 'disturbed':
+        return "I'm sorry to hear that. What happened that made you feel disturbed? What are your thoughts on it?";
+      case 'sad':
+        return "It's okay to feel sad. What's on your mind? Writing about it might help.";
+      default:
+        return "Type your thoughts here, or use the media buttons below...";
+    }
+  };
+
   const renderActivityItem = (activity: KarmaActivity, isFavoriteContext: boolean = false, isHabitTab: boolean = false) => {
     const isSelected = loggedActivities.some(la => la.name === activity.name);
     const CurrentIconComponent = activity.icon || ActivityIcon;
@@ -759,7 +776,7 @@ export default function HomePage() {
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
-                      <p>Seek help & resources for {activity.name}</p>
+                      <p>Seek help &amp; resources for {activity.name}</p>
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -985,13 +1002,17 @@ export default function HomePage() {
 
           <Card className="mt-2 w-full max-w-3xl mb-6">
             <CardHeader>
-              <CardTitle className="flex items-center"><Brain className="mr-2 h-6 w-6 text-primary" /> Daily Journal & Intentions</CardTitle>
+              <CardTitle className="flex items-center"><Brain className="mr-2 h-6 w-6 text-primary" /> Daily Journal &amp; Intentions</CardTitle>
               <CardDescription>Reflect on your day and set intentions. Add voice notes or images to your entries.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {journalPrompts.map((prompt) => {
                 const entry = journalEntries[prompt.id] || { text: '' };
                 const uniqueUploadId = `upload-image-${prompt.id}`;
+                const placeholderText = prompt.id === 'reflections_achievements'
+                  ? getReflectionPlaceholder(selectedMood)
+                  : "Type your thoughts here, or use the media buttons below...";
+
                 return (
                   <div key={prompt.id} className="p-4 border rounded-lg bg-secondary/30 space-y-3">
                     <label htmlFor={prompt.id} className="block text-sm font-medium text-left text-muted-foreground">{prompt.question}</label>
@@ -999,7 +1020,7 @@ export default function HomePage() {
                       id={prompt.id}
                       value={entry.text}
                       onChange={(e) => handleJournalInputChange(prompt.id, e.target.value)}
-                      placeholder="Type your thoughts here, or use the media buttons below..."
+                      placeholder={placeholderText}
                       rows={4}
                       className="bg-background"
                       dir="ltr"
@@ -1060,7 +1081,7 @@ export default function HomePage() {
 
               <Button onClick={handleAnalyzeFullJournal} disabled={isAnalyzingJournal} className="w-full mt-4">
                 {isAnalyzingJournal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SparklesIcon className="mr-2 h-4 w-4" />}
-                Analyze All Journal Text & Auto-Select Activities
+                Analyze All Journal Text &amp; Auto-Select Activities
               </Button>
             </CardContent>
           </Card>
@@ -1108,7 +1129,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                   <div className="mb-6 p-3 border rounded-md bg-secondary/20">
-                      <h4 className="text-sm font-semibold mb-2 text-center text-primary">Legend - Activity & "Happy Chemical" Associations:</h4>
+                      <h4 className="text-sm font-semibold mb-2 text-center text-primary">Legend - Activity &amp; "Happy Chemical" Associations:</h4>
                       <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
                           {appChemicalLegend.map(item => (
                           <Tooltip key={item.chemical}>
@@ -1145,7 +1166,7 @@ export default function HomePage() {
                     <TabsList className="grid w-full grid-cols-2 mb-6">
                       <TabsTrigger value="general">General Activities</TabsTrigger>
                       <TabsTrigger value="habits">
-                          <ListChecks className="mr-2 h-4 w-4"/> Habits & Addictions
+                          <ListChecks className="mr-2 h-4 w-4"/> Habits &amp; Addictions
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="general">
@@ -1196,7 +1217,7 @@ export default function HomePage() {
           </Card>
 
           <Button className="mt-4 mb-8" onClick={handleSave} disabled={!date || isAnalyzingJournal || isTranscribing || isRecording}>
-            Save Activities & Journal
+            Save Activities &amp; Journal
           </Button>
         </main>
 
