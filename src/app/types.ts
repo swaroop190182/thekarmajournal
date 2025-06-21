@@ -91,7 +91,7 @@ export type Badge = {
   icon: LucideIcon; 
   achievedDate?: string; // ISO date string
   criteriaCount?: number; // e.g., 3 for "3 reflections"
-  criteriaType: 'reflections' | 'moodsTrackedWeek' | 'favoriteAffirmations' | 'journalStreak';
+  criteriaType: 'reflections' | 'moodsTrackedWeek' | 'favoriteAffirmations' | 'journalStreak' | 'neuroBalanceDay' | 'serotoninSustainerWeek';
 };
 
 export type StreakData = {
@@ -119,3 +119,52 @@ export type AffirmationCategory = {
 
 // Individual affirmation (simple string for now)
 export type Affirmation = string;
+
+// Neuro-Wellness Dashboard Types
+export type ChemicalName = 'dopamine' | 'serotonin' | 'oxytocin' | 'endorphins';
+
+export type DailyNeuroWellnessData = {
+  date: string;
+  dopamine: { score: number; activityCount: number };
+  serotonin: { score: number; activityCount: number };
+  oxytocin: { score: number; activityCount: number };
+  endorphins: { score: number; activityCount: number };
+};
+
+export type ChemicalInfo = {
+  displayName: string;
+  icon: LucideIcon;
+  description: string;
+  boostingActivities: string[];
+  reflectionPrompt: string;
+  textColor: string;
+  baseBgClass: string;
+  borderClass: string;
+  headerBgClass: string;
+  progressColorClass: string;
+  iconColor: string;
+  lineChartColor: string;
+  focusArea: string;
+};
+
+// Counsellor Report Types
+export type ReportDailyLog = {
+    date: string;
+    mood?: string;
+    habitInstance?: SelectedKarmaActivity;
+    journalText: string;
+    positiveActivities: string[];
+};
+
+export type CounsellorReportData = {
+    userName: string;
+    habitName: string;
+    reportDateRange: string;
+    summary: {
+        totalInstances: number;
+        averageQuantity: string | null;
+        topTriggers: string[];
+    };
+    dailyLogs: ReportDailyLog[];
+    dateRange: string[];
+};

@@ -21,6 +21,7 @@ import {Checkbox} from '@/components/ui/checkbox';
 import {Label} from '@/components/ui/label';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import React, {useState, useEffect, useMemo, useCallback, useRef} from 'react';
+import ReactDOMServer from 'react-dom/server';
 import Image from 'next/image';
 import {
   Area,
@@ -38,7 +39,7 @@ import {
   PieChart,
   Cell,
 } from 'recharts';
-import type { SelectedKarmaActivity, DailyReflection, DailyLog, MoodOption as AppMoodOption, Goal, KarmaActivity, AffirmationCategory as AppAffirmationCategory, Badge, StreakData, DailyNeuroWellnessData, ChemicalName, ChemicalInfo } from '@/app/types';
+import type { SelectedKarmaActivity, DailyReflection, DailyLog, MoodOption as AppMoodOption, Goal, KarmaActivity, AffirmationCategory as AppAffirmationCategory, Badge, StreakData, DailyNeuroWellnessData, ChemicalName, ChemicalInfo, CounsellorReportData, ReportDailyLog } from '@/app/types';
 import type { LucideIcon } from 'lucide-react';
 import { ActivityList, chemicalLegend as appChemicalLegend, affirmationsList, badgeDefinitions, moodOptions, chemicalInfos } from '@/app/constants';
 import { Calendar } from '@/components/ui/calendar';
@@ -54,7 +55,7 @@ import {
     Sunrise, Brain as BrainIconReflections, Repeat as RepeatIconReflections, HeartHandshake as HeartHandshakeIconReflections, 
     Zap as ZapIconReflections, Sparkles as SparklesIconReflections, Edit3 as Edit3IconReflections, Lightbulb, Menu, BookHeart, Palette as PaletteIcon, SmilePlus, TrendingUp as TrendingUpIcon, Coffee, Heart as HeartIcon, Star, Notebook, Target, MessageSquareHeart, HelpCircle, Users2, AlertTriangle, Play, Pause, RotateCcw, TimerIcon,
     Trophy, Sprout, Leaf as LeafIcon, TreePine, Trees as TreesIcon, Wind,
-    Brain as BrainDashboardIcon, CheckCheck, BarChartBig
+    Brain as BrainDashboardIcon, CheckCheck, BarChartBig, Share2
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -101,6 +102,8 @@ const JOURNAL_STREAK_STORAGE_KEY = 'karma-journaling-streak';
 const ACHIEVED_BADGES_STORAGE_KEY = 'karma-journal-achieved-badges';
 const MOOD_CHALLENGE_REWARD_PREFIX = 'mood-challenge-reward-'; 
 const NEURO_WELLNESS_STORAGE_KEY_PREFIX = 'neuro-wellness-';
+const USER_PROFILE_KEY = 'karmaJournalUser';
+const TRIGGERS_SEPARATOR = ";;OTHER;;";
 
 
 const NUM_HYPOTHETICAL_USERS = 1000;
@@ -283,6 +286,151 @@ const computeNeuroWellnessForDate = (dateStr: string): DailyNeuroWellnessData =>
   return newScores;
 };
 
+// Helper to parse trigger strings
+const parseTriggersString = (triggersStr: string | undefined): { predefined: string[], other: string } => {
+  if (!triggersStr) return { predefined: [], other: "" };
+  const parts = triggersStr.split(TRIGGERS_SEPARATOR);
+  const predefined = parts[0] ? parts[0].split(",").map(t => t.trim()).filter(Boolean) : [];
+  const other = parts[1] || "";
+  return { predefined, other };
+};
+
+// Standalone component for the report view
+const CounsellorReportView: React.FC<{ data: CounsellorReportData, userName: string }> = ({ data, userName }) => {
+    const reportGeneratedDate = format(new Date(), 'MMMM d, yyyy');
+
+    // Chart component for habit trend
+    const HabitTrendChart = ({ logs }: { logs: ReportDailyLog[] }) => {
+        const chartData = data.dateRange.map(dateStr => {
+            const log = logs.find(l => l.date === dateStr);
+            const instance = log?.habitInstance;
+            return {
+                date: format(parseISO(dateStr), 'MMM d'),
+                quantity: instance && instance.quantity !== null && instance.quantity !== undefined ? instance.quantity : 0,
+            };
+        });
+
+        const maxQuantity = Math.max(...chartData.map(d => d.quantity), 1);
+
+        return (
+            <div style={{ fontFamily: 'sans-serif', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>{data.habitName} - Daily Quantity</h4>
+                <div style={{ display: 'flex', alignItems: 'flex-end', height: '150px', borderLeft: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', paddingLeft: '8px', gap: '2%' }}>
+                    {chartData.map((item, index) => (
+                        <div key={index} style={{ flex: '1', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <div title={`${item.date}: ${item.quantity}`} style={{ width: '100%', height: `${(item.quantity / maxQuantity) * 100}%`, backgroundColor: '#4a90e2', borderRadius: '4px 4px 0 0' }}></div>
+                            <span style={{ fontSize: '10px', marginTop: '4px', color: '#4a5568' }}>{item.date}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <html>
+            <head>
+                <title>Karma Journal Report: {data.habitName}</title>
+                <style>{`
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+                    body { font-family: 'Inter', sans-serif; color: #1a202c; line-height: 1.6; }
+                    .report-container { max-width: 800px; margin: auto; padding: 24px; }
+                    .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 24px; }
+                    .header h1 { font-size: 28px; font-weight: 700; color: #2d3748; margin: 0; }
+                    .header p { font-size: 14px; color: #718096; margin: 4px 0 0 0; }
+                    .section { margin-bottom: 24px; page-break-inside: avoid; }
+                    .section-title { font-size: 20px; font-weight: 600; color: #2d3748; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 16px; }
+                    .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+                    .summary-item { background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+                    .summary-item h4 { font-size: 14px; font-weight: 600; color: #4a5568; margin: 0 0 8px 0; }
+                    .summary-item p, .summary-item li { font-size: 18px; font-weight: 700; color: #1a202c; margin: 0; }
+                    .summary-item ul { list-style: none; padding: 0; }
+                    .log-item { margin-bottom: 20px; border-left: 3px solid #cbd5e1; padding-left: 16px; }
+                    .log-item:last-child { margin-bottom: 0; }
+                    .log-date { font-size: 16px; font-weight: 600; color: #4a5568; }
+                    .log-details p { margin: 4px 0; font-size: 14px; }
+                    .log-details strong { color: #2d3748; }
+                    .journal-entry { background-color: #edf2f7; border-radius: 6px; padding: 12px; margin-top: 8px; font-size: 14px; white-space: pre-wrap; }
+                    .mood-icon { display: inline-block; vertical-align: middle; margin-left: 8px; }
+                    @media print {
+                        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        .no-print { display: none; }
+                    }
+                `}</style>
+            </head>
+            <body>
+                <div className="report-container">
+                    <div className="header">
+                        <h1>Karma Journal Progress Report</h1>
+                        <p>For: {userName} | Focus: {data.habitName}</p>
+                        <p>Date Range: {data.reportDateRange}</p>
+                        <p style={{fontSize: '12px', color: '#a0aec0', marginTop: '8px'}}>Report Generated on {reportGeneratedDate}</p>
+                    </div>
+
+                    <div className="section">
+                        <h2 className="section-title">At-a-Glance Summary</h2>
+                        <div className="summary-grid">
+                            <div className="summary-item">
+                                <h4>Total Instances Logged</h4>
+                                <p>{data.summary.totalInstances}</p>
+                            </div>
+                            <div className="summary-item">
+                                <h4>Average Quantity / Day</h4>
+                                <p>{data.summary.averageQuantity ?? 'N/A'}</p>
+                            </div>
+                            <div className="summary-item" style={{ gridColumn: 'span 2' }}>
+                                <h4>Most Frequent Triggers</h4>
+                                {data.summary.topTriggers.length > 0 ? (
+                                    <ul>
+                                        {data.summary.topTriggers.map((trigger, i) => <li key={i} style={{fontSize: '14px', fontWeight: 'normal'}}>{trigger}</li>)}
+                                    </ul>
+                                ) : <p style={{fontSize: '14px', fontWeight: 'normal'}}>No triggers logged.</p>}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {data.dailyLogs.some(log => log.habitInstance?.quantity != null) && (
+                        <div className="section">
+                            <HabitTrendChart logs={data.dailyLogs} />
+                        </div>
+                    )}
+
+                    <div className="section">
+                        <h2 className="section-title">Detailed Daily Logs</h2>
+                        {data.dailyLogs.length > 0 ? data.dailyLogs.map(log => {
+                             const moodInfo = log.mood ? moodOptions.find(m => m.id === log.mood) : null;
+                             return (
+                                <div key={log.date} className="log-item">
+                                    <h3 className="log-date">
+                                        {format(parseISO(log.date), 'EEEE, MMMM d, yyyy')}
+                                        {moodInfo && <span className="mood-icon" title={moodInfo.label}>{moodInfo.label === 'Excited' ? '😄' : moodInfo.label === 'Happy' ? '🙂' : moodInfo.label === 'Neutral' ? '😐' : moodInfo.label === 'Disturbed' ? '😟' : '😢'}</span>}
+                                    </h3>
+                                    <div className="log-details">
+                                        {log.habitInstance ? (
+                                            <p><strong>{log.habitInstance.name}:</strong> {log.habitInstance.quantity ?? 'Not specified'} {log.habitInstance.quantificationUnit || ''}. <strong>Triggers:</strong> {log.habitInstance.triggers || 'None logged'}</p>
+                                        ) : (
+                                            <p><strong>{data.habitName}:</strong> Not logged on this day.</p>
+                                        )}
+                                        {log.positiveActivities.length > 0 && (
+                                            <p><strong>Positive Coping Activities:</strong> {log.positiveActivities.join(', ')}</p>
+                                        )}
+                                        {log.journalText && (
+                                            <div className="journal-entry">
+                                                <strong>Journal Entry:</strong><br/>
+                                                {log.journalText}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )
+                        }) : <p>No data found for the selected period.</p>}
+                    </div>
+                </div>
+            </body>
+        </html>
+    );
+};
+
 
 const ReflectionsPage = () => {
   const [timePeriod, setTimePeriod] = useState<'week' | 'month'>('week');
@@ -335,6 +483,12 @@ const ReflectionsPage = () => {
   const [isNeuroWellnessLoading, setIsNeuroWellnessLoading] = useState(false);
   const [isChemicalDetailDialogOpen, setIsChemicalDetailDialogOpen] = useState(false);
   const [selectedChemicalForDialog, setSelectedChemicalForDialog] = useState<ChemicalInfo | null>(null);
+
+  // Reporting States
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportDateRange, setReportDateRange] = useState('7');
+  const [reportHabit, setReportHabit] = useState('');
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
 
   const calculateDailyNeuroWellnessScores = useCallback((targetDate: Date) => {
@@ -1350,6 +1504,100 @@ const ReflectionsPage = () => {
     );
   }
 
+    const handleGenerateReport = () => {
+        if (!reportHabit) {
+            toast({
+                title: "Selection Required",
+                description: "Please select a habit to generate a report.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setIsGeneratingReport(true);
+        try {
+            const today = new Date();
+            const startDate = subDays(today, parseInt(reportDateRange));
+            const dateRange = eachDayOfInterval({ start: startDate, end: today }).map(d => format(d, 'yyyy-MM-dd'));
+
+            const reportLogs: ReportDailyLog[] = [];
+            
+            dateRange.forEach(dateStr => {
+                const activitiesString = localStorage.getItem(`karma-${dateStr}`);
+                const reflectionString = localStorage.getItem(`${REFLECTION_STORAGE_KEY_PREFIX}${dateStr}`);
+
+                let dailyActivities: SelectedKarmaActivity[] = [];
+                if (activitiesString) try { dailyActivities = JSON.parse(activitiesString); } catch(e) {}
+                
+                let reflection: { text: string; mood?: string } | undefined;
+                if (reflectionString) try { reflection = JSON.parse(reflectionString); } catch(e) {}
+
+                const habitInstance = dailyActivities.find(act => act.name === reportHabit);
+                const positiveActivities = dailyActivities.filter(act => act.points > 0 && act.name !== reportHabit).map(act => act.name);
+
+                reportLogs.push({
+                    date: dateStr,
+                    mood: reflection?.mood,
+                    habitInstance: habitInstance,
+                    journalText: reflection?.text || "",
+                    positiveActivities: positiveActivities.slice(0, 3) // Limit for brevity
+                });
+            });
+
+            const habitInstances = reportLogs.map(l => l.habitInstance).filter(Boolean) as SelectedKarmaActivity[];
+            const totalInstances = habitInstances.length;
+            const totalQuantity = habitInstances.reduce((sum, item) => sum + (item.quantity || 0), 0);
+            const averageQuantity = totalInstances > 0 ? (totalQuantity / totalInstances).toFixed(2) : null;
+            
+            const allTriggers = habitInstances.flatMap(item => {
+                if (!item.triggers) return [];
+                const { predefined, other } = parseTriggersString(item.triggers);
+                return [...predefined, ...(other ? [other] : [])];
+            });
+
+            const triggerCounts = allTriggers.reduce((acc, trigger) => {
+                acc[trigger] = (acc[trigger] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
+
+            const topTriggers = Object.entries(triggerCounts).sort((a,b) => b[1] - a[1]).slice(0,3).map(([trigger, count]) => `${trigger} (${count} times)`);
+            
+            const userProfileString = localStorage.getItem(USER_PROFILE_KEY);
+            const userName = userProfileString ? JSON.parse(userProfileString).username : "User";
+
+            const reportData: CounsellorReportData = {
+                userName: userName,
+                habitName: reportHabit,
+                reportDateRange: `${format(startDate, 'MMMM d, yyyy')} - ${format(today, 'MMMM d, yyyy')}`,
+                summary: {
+                    totalInstances,
+                    averageQuantity: averageQuantity,
+                    topTriggers,
+                },
+                dailyLogs: reportLogs.reverse(), // Show most recent first
+                dateRange: dateRange,
+            };
+            
+            const reportHtml = ReactDOMServer.renderToString(<CounsellorReportView data={reportData} userName={userName} />);
+            const reportWindow = window.open("", "_blank");
+            if (reportWindow) {
+                reportWindow.document.write(reportHtml);
+                reportWindow.document.close();
+                setTimeout(() => {
+                    reportWindow.print();
+                }, 500); // Delay to ensure CSS loads
+            } else {
+                toast({ title: "Popup Blocked", description: "Please allow popups for this site to view the report.", variant: "destructive" });
+            }
+        } catch (error) {
+            console.error("Error generating report:", error);
+            toast({ title: "Error", description: "Could not generate the report.", variant: "destructive" });
+        } finally {
+            setIsGeneratingReport(false);
+            setIsReportDialogOpen(false);
+        }
+    };
+
 
   return (
     <TooltipProvider>
@@ -1489,6 +1737,25 @@ const ReflectionsPage = () => {
               />
             </CardContent>
           </Card>
+            
+          <Card className="w-full mx-auto shadow-xl rounded-lg">
+                <CardHeader>
+                    <CardTitle className="text-2xl font-bold text-primary flex items-center">
+                        <Share2 className="mr-3 h-6 w-6" /> Reporting Tools
+                    </CardTitle>
+                    <CardDescription>
+                        Generate a shareable progress report for your counsellor or for personal review.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        This tool creates a printer-friendly summary of your logged habits, moods, and journal entries over a selected period. You can save this report as a PDF to easily share it.
+                    </p>
+                    <Button onClick={() => setIsReportDialogOpen(true)}>
+                        Generate Counsellor Report
+                    </Button>
+                </CardContent>
+            </Card>
 
           <Card className="w-full max-w-4xl mx-auto">
             <CardHeader>
@@ -1737,6 +2004,51 @@ const ReflectionsPage = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                  <DialogTitle>Generate Counsellor Report</DialogTitle>
+                  <DialogDescription>
+                      Select a date range and a habit to create a shareable progress report.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                      <Label htmlFor="report-range">Date Range</Label>
+                      <Select value={reportDateRange} onValueChange={setReportDateRange}>
+                          <SelectTrigger id="report-range">
+                              <SelectValue placeholder="Select date range" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="7">Last 7 Days</SelectItem>
+                              <SelectItem value="30">Last 30 Days</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="grid gap-2">
+                      <Label htmlFor="report-habit">Habit / Addiction</Label>
+                      <Select value={reportHabit} onValueChange={setReportHabit}>
+                          <SelectTrigger id="report-habit">
+                              <SelectValue placeholder="Select a habit to report on" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {ActivityList.filter(act => act.type === 'Habit / Addiction').map(habit => (
+                                  <SelectItem key={habit.name} value={habit.name}>{habit.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                  </div>
+              </div>
+              <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsReportDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !reportHabit}>
+                      {isGeneratingReport ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Generate & Print
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
     <Dialog open={isReflectionDialogOpen} onOpenChange={setIsReflectionDialogOpen}>
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -1945,5 +2257,3 @@ const ReflectionsPage = () => {
 };
 
 export default ReflectionsPage;
-
-
