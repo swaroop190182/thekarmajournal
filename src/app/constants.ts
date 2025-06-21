@@ -8,9 +8,9 @@ import {
     Globe, Gamepad2, ShoppingBag, Dice5, Briefcase, HeartPulse, Tv, ScreenShareOff, VenetianMask, Zap, UsersRound, Bandage,
     Scissors, Castle, MousePointer2, Church, Activity, CircleDot, Drama, Palette, Music2, Utensils, Bus, Trees, SunMedium, Leaf, Lightbulb, Award, Target, BookText, Flame,
     NotebookText, Medal, BrainCog, Star as StarIcon, Wind,
-    Laugh, // Added for moodOptions
-    Meh,   // Added for moodOptions
-    Angry  // Added for moodOptions
+    Laugh,
+    Meh,
+    Angry
 } from 'lucide-react';
 
 export const ActivityList: KarmaActivity[] = [
@@ -146,11 +146,11 @@ export const chemicalLegend: { name: string; chemical: NonNullable<KarmaActivity
 ];
 
 export const moodOptions: AppMoodOption[] = [
-  { id: 'rad', label: 'Rad', icon: Laugh, color: 'text-lime-500 dark:text-lime-400', bgColor: 'bg-lime-100 dark:bg-lime-900' },
-  { id: 'good', label: 'Good', icon: Smile, color: 'text-green-500 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-900' },
-  { id: 'meh', label: 'Meh', icon: Meh, color: 'text-yellow-500 dark:text-yellow-400', bgColor: 'bg-yellow-100 dark:bg-yellow-900' },
-  { id: 'bad', label: 'Bad', icon: Frown, color: 'text-orange-500 dark:text-orange-400', bgColor: 'bg-orange-100 dark:bg-orange-900' },
-  { id: 'awful', label: 'Awful', icon: Angry, color: 'text-red-500 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900' },
+  { id: 'excited', label: 'Excited', icon: Laugh, color: 'text-yellow-500 dark:text-yellow-400', bgColor: 'bg-yellow-100 dark:bg-yellow-900' },
+  { id: 'happy', label: 'Happy', icon: Smile, color: 'text-green-500 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-900' },
+  { id: 'neutral', label: 'Neutral', icon: Meh, color: 'text-gray-500 dark:text-gray-400', bgColor: 'bg-gray-100 dark:bg-gray-800' },
+  { id: 'disturbed', label: 'Disturbed', icon: Angry, color: 'text-orange-500 dark:text-orange-400', bgColor: 'bg-orange-100 dark:bg-orange-900' },
+  { id: 'sad', label: 'Sad', icon: Frown, color: 'text-blue-500 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-900' },
 ];
 
 export const badgeDefinitions: Badge[] = [
