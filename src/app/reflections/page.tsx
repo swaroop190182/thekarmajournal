@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -1543,12 +1542,14 @@ const ReflectionsPage = () => {
                     try { 
                         reflection = JSON.parse(reflectionString); 
                     } catch(e) {
-                        reflection = { text: reflectionString };
+                        if (typeof reflectionString === 'string') {
+                            reflection = { text: reflectionString };
+                        }
                     }
                 }
 
                 const habitInstance = dailyActivities.find(act => 
-                    act && typeof act.name === 'string' && act.name.trim() === reportHabit.trim()
+                    act && typeof act.name === 'string' && act.name.trim().toLowerCase() === reportHabit.trim().toLowerCase()
                 );
                 
                 const positiveActivities = dailyActivities.filter(act => act && act.points > 0 && act.name !== reportHabit).map(act => act.name);
@@ -1568,10 +1569,10 @@ const ReflectionsPage = () => {
                 if (!item.triggers) return [];
                 const { predefined, other } = parseTriggersString(item.triggers);
                 const combinedTriggers: string[] = [...predefined];
-                if (other) {
-                    combinedTriggers.push(other);
+                if (other.trim()) {
+                    combinedTriggers.push(other.trim());
                 }
-                return combinedTriggers;
+                return combinedTriggers.filter(t => t && t.trim() !== "");
             });
 
             const triggerCounts = allTriggers.reduce((acc, trigger) => {
@@ -1584,6 +1585,11 @@ const ReflectionsPage = () => {
 
             const topTriggers = Object.entries(triggerCounts).sort((a,b) => b[1] - a[1]).slice(0,3).map(([trigger, count]) => `${trigger} (${count} times)`);
             
+            const instancesWithQuantity = habitInstances.filter(item => typeof item.quantity === 'number' && item.quantity !== null);
+            const averageQuantity = instancesWithQuantity.length > 0 
+                ? (instancesWithQuantity.reduce((sum, item) => sum + (item.quantity!), 0) / instancesWithQuantity.length).toFixed(2)
+                : null;
+
             const userProfileString = localStorage.getItem(USER_PROFILE_KEY);
             const userName = userProfileString ? JSON.parse(userProfileString).username : "User";
 
@@ -1593,10 +1599,10 @@ const ReflectionsPage = () => {
                 reportDateRange: `${format(startDate, 'MMMM d, yyyy')} - ${format(today, 'MMMM d, yyyy')}`,
                 summary: {
                     totalInstances: habitInstances.length,
-                    averageQuantity: habitInstances.length > 0 ? (habitInstances.reduce((sum, item) => sum + (item.quantity || 0), 0) / habitInstances.length).toFixed(2) : null,
+                    averageQuantity: averageQuantity,
                     topTriggers,
                 },
-                dailyLogs: reportLogs.reverse(), // Show most recent first
+                dailyLogs: reportLogs.reverse(),
                 dateRange: dateRange,
             };
             
