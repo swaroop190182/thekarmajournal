@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -1123,30 +1124,10 @@ export default function HomePage() {
               <CardHeader>
                 <CardTitle>Log Your Day: {date ? formatDate(date, "dd-MM-yyyy") : 'Selected Date'}</CardTitle>
                 <CardDescription>
-                  Select activities you performed. Activities are color-coded by the primary "happy chemical" they may release. Media upload is not available for habits.
+                  Select activities you performed. Media upload is not available for habits.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                  <div className="mb-6 p-3 border rounded-md bg-secondary/20">
-                      <h4 className="text-sm font-semibold mb-2 text-center text-primary">Legend - Activity &amp; "Happy Chemical" Associations:</h4>
-                      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-                          {appChemicalLegend.map(item => (
-                          <Tooltip key={item.chemical}>
-                              <TooltipTrigger asChild>
-                                  <div className="flex items-center space-x-1.5 cursor-default">
-                                      <div className={cn("w-3 h-3 rounded-full", item.colorClass)}></div>
-                                      <span className="text-xs text-muted-foreground">{item.name}</span>
-                                  </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                  <p className="text-xs max-w-xs">{item.description}</p>
-                              </TooltipContent>
-                          </Tooltip>
-                          ))}
-                      </div>
-                  </div>
-
-
                   {favoriteActivityObjects.length > 0 && (
                     <div className="mb-8">
                       <h3 className="text-xl font-semibold text-primary mb-3 flex items-center">
