@@ -61,14 +61,6 @@ const buildTriggersString = (predefined: string[], other: string): string => {
   return str;
 };
 
-const chemicalColorClasses: Record<NonNullable<KarmaActivity['chemicalRelease']>, { border: string; icon: string; ring: string }> = {
-    endorphins: { border: "border-orange-400", icon: "text-orange-500", ring: "ring-orange-500" },
-    serotonin: { border: "border-green-400", icon: "text-green-500", ring: "ring-green-500" },
-    dopamine: { border: "border-purple-400", icon: "text-purple-500", ring: "ring-purple-500" },
-    oxytocin: { border: "border-pink-400", icon: "text-pink-500", ring: "ring-pink-500" },
-    none: { border: "border-input", icon: "text-muted-foreground", ring: "ring-ring" },
-};
-
 const moodEmojis: { [key: string]: string } = {
   excited: '😄',
   happy: '🙂',
@@ -184,6 +176,14 @@ export default function HomePage() {
     }
   }, []);
 
+  const handleDisableCamera = useCallback(() => {
+    setIsCameraOn(false);
+    if (videoRef.current) {
+        videoRef.current.pause();
+        // Don't null out srcObject here to allow quick re-enable
+    }
+  }, []);
+
   useEffect(() => {
     if (date) {
       const formattedDate = formatDate(date, 'yyyy-MM-dd');
@@ -231,7 +231,7 @@ export default function HomePage() {
       setStreakJustUpdated(false);
       handleDisableCamera();
     }
-  }, [date]);
+  }, [date, handleDisableCamera]);
 
 
   // Cleanup camera stream on component unmount
@@ -452,13 +452,6 @@ export default function HomePage() {
     }
   };
 
-  const handleDisableCamera = () => {
-    setIsCameraOn(false);
-    if (videoRef.current) {
-        videoRef.current.pause();
-        // Don't null out srcObject here to allow quick re-enable
-    }
-  };
   
   const handleCaptureImage = () => {
     if (videoRef.current && canvasRef.current && isCameraOn && activeMediaPromptId) {
@@ -734,92 +727,84 @@ export default function HomePage() {
     const showHabitDetails = isSelected && isHabitTab && expandedHabit === activity.name;
     const displayName = activity.shortName || activity.name;
 
-    const chemical = activity.chemicalRelease && activity.chemicalRelease !== 'none' ? activity.chemicalRelease : 'none';
-    const colorConfig = chemicalColorClasses[chemical];
-
-    const buttonBaseClasses = "w-16 h-16 rounded-full flex items-center justify-center p-0 shadow-md transition-all duration-150 ease-in-out";
-    const buttonSelectedClasses = "bg-primary text-primary-foreground ring-2 ring-offset-2";
-    const buttonUnselectedClasses = "bg-card hover:bg-muted/80";
+    const buttonBaseClasses = "w-full rounded-lg flex flex-col items-center justify-center p-2 shadow-md transition-all duration-150 ease-in-out h-24";
+    const buttonSelectedClasses = "bg-primary text-primary-foreground ring-2 ring-offset-2 ring-primary";
+    const buttonUnselectedClasses = "bg-card hover:bg-muted/80 border";
 
     const uniqueKey = `${activity.name}-${isFavoriteContext ? 'fav' : 'main'}-${isHabitTab ? 'habit' : 'gen'}`;
 
     return (
-      <div key={uniqueKey} className="flex flex-col items-center w-28">
+      <div key={uniqueKey} className="flex flex-col items-center w-full max-w-[12rem] space-y-2">
         <Tooltip>
           <TooltipTrigger asChild>
             <div
-              className="flex flex-col items-center cursor-pointer group/activitybutton"
+              className="relative w-full"
               onClick={(e) => {
                 e.stopPropagation();
                 handleActivityToggle(activity);
               }}
             >
-              <div className="relative">
-                {isHabitTab && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                       <Button
-                          asChild
-                          variant="ghost"
-                          size="icon"
-                          className="absolute -top-1 -left-1 h-7 w-7 p-1 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 dark:bg-blue-800 dark:hover:bg-blue-700 dark:text-blue-300 z-10"
-                          aria-label={`Get help for ${activity.name}`}
-                          onClick={(e) => e.stopPropagation()}
+              {isHabitTab && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                     <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1 left-1 h-7 w-7 p-1 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 dark:bg-blue-800 dark:hover:bg-blue-700 dark:text-blue-300 z-10"
+                        aria-label={`Get help for ${activity.name}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Link
+                          href={`/habits-manager?concern=${encodeURIComponent(activity.name)}`}
+                          passHref
+                          legacyBehavior
                         >
-                          <Link
-                            href={`/habits-manager?concern=${encodeURIComponent(activity.name)}`}
-                            passHref
-                            legacyBehavior
-                          >
-                           <a><HelpCircle className="h-4 w-4" /></a>
-                          </Link>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>Seek help &amp; resources for {activity.name}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                         <a><HelpCircle className="h-4 w-4" /></a>
+                        </Link>
+                      </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Seek help &amp; resources for {activity.name}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <Button
+                variant={isSelected ? "default" : "outline"}
+                className={cn(
+                  buttonBaseClasses,
+                  isSelected ? buttonSelectedClasses : buttonUnselectedClasses,
+                  "focus:ring-2 focus:ring-offset-2",
+                  isSelected ? "ring-primary" : "focus:ring-ring"
                 )}
-                <Button
-                  variant={isSelected ? "default" : "outline"}
-                  className={cn(
-                    buttonBaseClasses,
-                    isSelected
-                      ? cn(buttonSelectedClasses, colorConfig.ring)
-                      : cn(buttonUnselectedClasses, colorConfig.border, isHabitTab && "hover:border-yellow-400"),
-                    "focus:ring-2 focus:ring-offset-2",
-                    isSelected ? colorConfig.ring : "focus:ring-ring"
-                  )}
-                  aria-pressed={isSelected}
-                >
-                  <CurrentIconComponent className={cn("w-8 h-8",
-                    isSelected ? "text-primary-foreground" : colorConfig.icon,
-                    isHabitTab && !isSelected && "group-hover/activitybutton:text-yellow-500"
-                  )} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute -top-1 -right-1 h-7 w-7 p-1 rounded-full bg-background/70 hover:bg-accent/70"
-                  onClick={(e) => { e.stopPropagation(); toggleFavoriteActivity(activity.name); }}
-                  aria-label={isFavorited ? `Unfavorite ${activity.name}` : `Favorite ${activity.name}`}
-                >
-                  <Star className={cn("h-4 w-4", isFavorited ? "fill-yellow-400 text-yellow-500" : "text-muted-foreground hover:text-yellow-400")} />
-                </Button>
-              </div>
-              <span className="text-xs text-center mt-2 block w-full truncate">
-                {displayName}{activity.requiresPhoto && !isHabitTab && chemical === 'none' ? <span className="text-destructive">*</span> : ''}
-              </span>
+                aria-pressed={isSelected}
+              >
+                <CurrentIconComponent className={cn("w-8 h-8 mb-1",
+                  isSelected ? "text-primary-foreground" : "text-primary"
+                )} />
+                <span className="text-xs text-center w-full truncate">
+                  {displayName}{activity.requiresPhoto && <span className="text-destructive">*</span>}
+                </span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-1 right-1 h-7 w-7 p-1 rounded-full bg-background/70 hover:bg-accent/70"
+                onClick={(e) => { e.stopPropagation(); toggleFavoriteActivity(activity.name); }}
+                aria-label={isFavorited ? `Unfavorite ${activity.name}` : `Favorite ${activity.name}`}
+              >
+                <Star className={cn("h-4 w-4", isFavorited ? "fill-yellow-400 text-yellow-500" : "text-muted-foreground hover:text-yellow-400")} />
+              </Button>
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>{activity.name} {activity.chemicalRelease && activity.chemicalRelease !== 'none' ? `(${activity.chemicalRelease.charAt(0).toUpperCase() + activity.chemicalRelease.slice(1)})` : ''}</p>
-            {activity.requiresPhoto && !isHabitTab && chemical === 'none' && <p className="text-xs text-destructive/80">(Photo recommended)</p>}
+            <p>{activity.name}</p>
+            {activity.requiresPhoto && <p className="text-xs text-destructive/80">(Photo recommended)</p>}
           </TooltipContent>
         </Tooltip>
 
         {showHabitDetails && (
-            <div className="mt-2 w-full space-y-2 p-1 border border-muted rounded-md bg-muted/20">
+            <div className="w-full space-y-2 p-2 border border-muted rounded-md bg-muted/20">
             {activity.quantificationUnit && (
                 <div className="flex flex-col items-center">
                 <Input
@@ -895,7 +880,7 @@ export default function HomePage() {
         )}
 
         {isSelected && !isHabitTab && activity.requiresPhoto && (
-            <div className="mt-2 w-full space-y-2 p-1 border border-muted rounded-md bg-muted/20">
+            <div className="w-full space-y-2 p-2 border border-muted rounded-md bg-muted/20">
                  <div className="flex flex-col items-center mt-1">
                     <label htmlFor={`media-upload-${activity.name}-${isFavoriteContext ? 'fav' : 'main'}`} className="sr-only">Upload media for {activity.name}</label>
                     <Input
@@ -970,7 +955,6 @@ export default function HomePage() {
               <CardContent className="flex flex-wrap justify-center gap-3 sm:gap-4 p-4">
                   {moodOptions.map(mood => {
                       const emoji = moodEmojis[mood.id];
-                      const IconComponent = mood.icon as React.FC<React.SVGProps<SVGSVGElement>>;
                       return (
                           <Tooltip key={mood.id}>
                               <TooltipTrigger asChild>
@@ -986,7 +970,7 @@ export default function HomePage() {
                                       {emoji ? (
                                         <span className="text-4xl sm:text-5xl mb-1">{emoji}</span>
                                       ) : (
-                                        <IconComponent className={cn("h-8 w-8 sm:h-10 sm:w-10 mb-1", selectedMood === mood.id ? mood.color : 'text-muted-foreground group-hover:'+mood.color)} />
+                                        <mood.icon className={cn("h-8 w-8 sm:h-10 sm:w-10 mb-1", selectedMood === mood.id ? mood.color : 'text-muted-foreground group-hover:'+mood.color)} />
                                       )}
                                       <span className={cn("text-xs sm:text-sm", selectedMood === mood.id ? mood.color : 'text-muted-foreground group-hover:'+mood.color)}>{mood.label}</span>
                                   </Button>
@@ -1135,7 +1119,7 @@ export default function HomePage() {
                         My Favourite Acts
                       </h3>
                       <Separator className="mb-4"/>
-                      <div className="flex flex-wrap gap-x-4 gap-y-8 p-2 justify-center sm:justify-start">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                         {favoriteActivityObjects.map(activity => renderActivityItem(activity, true, activity.type === "Habit / Addiction"))}
                       </div>
                       <Separator className="mt-4 mb-6"/>
@@ -1156,7 +1140,7 @@ export default function HomePage() {
                             <AccordionItem value={group.type} key={group.type}>
                               <AccordionTrigger>{group.type}</AccordionTrigger>
                               <AccordionContent>
-                                <div className="flex flex-wrap gap-x-4 gap-y-8 p-2 justify-center sm:justify-start">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-2">
                                   {group.activities.map(activity => renderActivityItem(activity, false, false))}
                                 </div>
                               </AccordionContent>
@@ -1169,7 +1153,7 @@ export default function HomePage() {
                     </TabsContent>
                     <TabsContent value="habits">
                       {habitActivities.length > 0 ? (
-                          <div className="flex flex-wrap gap-x-4 gap-y-8 p-2 justify-center sm:justify-start">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-2">
                             {habitActivities.map(activity => renderActivityItem(activity, false, true))}
                           </div>
                       ) : (
