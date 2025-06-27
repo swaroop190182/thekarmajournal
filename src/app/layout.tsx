@@ -68,6 +68,9 @@ export default function RootLayout({
               <Link href="/impact" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
                 Impact
               </Link>
+              <Link href="/compass" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                Compass
+              </Link>
             </nav>
           </div>
         </header>
